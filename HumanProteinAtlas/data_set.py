@@ -7,6 +7,7 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 
 import os
 from enum import Enum
+import csv
 from HumanProteinAtlas import sample
 
 class Split(Enum):
@@ -27,6 +28,7 @@ class Dataset:
             self.csv_path = os.path.join(path, "sample_submission.csv")
 
         self._sample_labels = None
+        self._samples = dict()
 
     @property
     def labels(self):
@@ -41,11 +43,24 @@ class Dataset:
         if self._sample_labels is not None:
             return self._sample_labels
 
-        self._sample_labels =
+        self._sample_labels = self.read_labels(self.csv_path)
         return self._sample_labels
 
-
-    @property
     def sample(self, sample_id):
+        if sample_id in
 
-        sample.Sample(sample_id)
+        s = sample.Sample(sample_id)
+
+        return s
+
+    
+
+    @staticmethod
+    def read_labels(csv_file):
+        d = dict()
+        with open(csv_file, 'r') as f:
+            reader = csv.reader(f)
+            for sample_id, label_list in reader:
+                labels = list(map(int, label_list.split()))
+                d[sample_id] = labels
+        return d
