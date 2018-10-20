@@ -1,6 +1,21 @@
 # CS229-Project
 CS229 Final Project
 
+
+## Usage
+
+To create training, test, and validation sets
+
+    python -m partitions.create --input ~/Datasets/HumanProteinAtlas --num-test 1500 --num-validation 1500
+
+
+To train deep model
+
+    python -m deep_model.train
+
+
+
+## Kaggle instructions
 Create a README.md file at the top level of the archive. Here is an example file. This file concisely and precisely describes the following:
 
 The hardware you used: CPU specs, number of CPU cores, memory, GPU specs, number of GPUs.

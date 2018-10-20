@@ -19,4 +19,4 @@ default_locations = {
 }
 
 
-default_splits = Partitions(default_locations)
+partitions = Partitions(default_locations)

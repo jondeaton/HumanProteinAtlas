@@ -21,8 +21,8 @@ class Configuration(object):
         self._config.read(self._config_file)
         c = self._config
 
-        self.brats_directory = os.path.expanduser(c["BraTS"]["root"])
-        self.tfrecords_dir = os.path.expanduser(c["BraTS"]["TFRecords"])
+        self.dataset_directory = os.path.expanduser(c["Data"]["path"])
+        self.tfrecords_dir = os.path.expanduser(c["Data"]["TFRecords"])
         self.model_file = os.path.expanduser(c["Output"]["save-file"])
 
         self.tensorboard_dir = os.path.expanduser(c["TensorFlow"]["tensorboard-dir"])
@@ -32,7 +32,7 @@ class Configuration(object):
         assert args is not None
 
         if args.brats_directory is not None:
-            self.brats_directory = args.brats_directory
+            self.dataset_directory = args.input_directory
 
         if args.model_file is not None:
             self.model_file = args.model_file
