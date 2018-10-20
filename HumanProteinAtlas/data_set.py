@@ -9,11 +9,7 @@ import os
 from enum import Enum
 import csv
 from HumanProteinAtlas import sample
-
-
-class Split(Enum):
-    test = 0
-    train = 0
+from partitions import Split
 
 
 class Dataset:
@@ -30,12 +26,15 @@ class Dataset:
             self.data_path = os.path.join(path, "test")
             self.csv_path = os.path.join(path, "sample_submission.csv")
 
+        self._sample_ids = None
         self._sample_labels = dict()
         self._samples = dict()
 
     @property
     def sample_ids(self):
-        return self.sample_labels.keys()
+        if self._sample_ids is None:
+            self._sample_ids = list(self.sample_labels.keys())
+        return self._sample_ids
 
     @property
     def sample_labels(self):
@@ -62,7 +61,6 @@ class Dataset:
                 self._samples[sample_id] = self.sample(sample_id)
         return self._samples
 
-
     def drop_cache(self):
         for sample in self._samples.values():
             sample.drop_cache()
@@ -75,6 +73,7 @@ class Dataset:
         d = dict()
         with open(csv_file, 'r') as f:
             reader = csv.reader(f)
+            next(reader, None)  # skip the header
             for sample_id, label_list in reader:
                 labels = list(map(int, label_list.split()))
                 d[sample_id] = labels

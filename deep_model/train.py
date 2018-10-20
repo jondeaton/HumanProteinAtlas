@@ -5,10 +5,15 @@ Date: 10/19/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
+import os
 import sys
 import argparse
 import logging
 
+import tensorflow as tf
+
+from deep_model.config import Configuration
+from deep_model.params import Params
 
 def main():
     def main():
@@ -79,7 +84,10 @@ def parse_args():
     tensorboard_options.add_argument("--log-frequency", help="Logging frequency")
 
     logging_options = parser.add_argument_group("Logging")
-    logging_options.add_argument('--log', dest="log_level", default="DEBUG", help="Logging level")
+    logging_options.add_argument('--log',
+                                 dest="log_level",
+                                 choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                                 default="DEBUG", help="Logging level")
 
     args = parser.parse_args()
 
@@ -89,9 +97,6 @@ def parse_args():
 
     # Logging level configuration
     log_level = getattr(logging, args.log_level.upper())
-    if not isinstance(log_level, int):
-        raise ValueError('Invalid log level: %s' % args.log_level)
-
     log_formatter = logging.Formatter('[%(asctime)s][%(levelname)s][%(funcName)s] - %(message)s')
 
     # For the console

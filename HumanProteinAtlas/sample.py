@@ -24,7 +24,7 @@ colors = {
     'blue': Color.blue
 }
 
-color_names = {color: name for name, color in colors}
+color_names = {color: name for name, color in colors.items()}
 
 default_color_ordering = {color: idx for idx, color in enumerate(colors.values())}
 
