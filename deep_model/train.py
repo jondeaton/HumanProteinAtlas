@@ -18,16 +18,15 @@ import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
 
+from HumanProteinAtlas import Dataset
+from partitions import Split
+from preprocessing import load_dataset, augment_dataset, preprocess_dataset
 
 def train(train_dataset, test_dataset):
-    """Train the model
+    assert isinstance(train_dataset, tf.data.Dataset)
+    assert isinstance(test_dataset, tf.data.Dataset)
 
-    :param train_dataset: Training dataset
-    :param test_dataset: Testing/dev dataset
-    :return: None
-    """
-
-    # Set up dataset iterators
+    # dataset iterators (for selecting dataset to feed in)
     dataset_handle = tf.placeholder(tf.string, shape=[])
     iterator = tf.data.Iterator.from_string_handle(dataset_handle,
                                                    train_dataset.output_types,
@@ -58,18 +57,13 @@ def train(train_dataset, test_dataset):
     with tf.Session() as sess:
 
         # Configure TensorBoard training data
-        train_dice = tf.summary.scalar('train_dice', dice)
-        train_dice_histogram = tf.summary.histogram("train_dice_histogram", dice)
-        train_dice_average = tf.summary.scalar('train_dice_average', tf.reduce_mean(dice))
+        # some_other_metric = tf.summary.scalar('train_dice', dice)
         train_cost = tf.summary.scalar('train_cost', cost)
-        merged_summary_train = tf.summary.merge([train_dice, train_dice_histogram, train_dice_average, train_cost])
+        merged_summary_train = tf.summary.merge([train_cost])
 
         # Configure TensorBoard test data
-        test_dice = tf.summary.scalar('test_dice', dice)
-        test_dice_histogram = tf.summary.histogram('test_dice_histogram', dice)
-        test_dice_average = tf.summary.scalar('test_dice_average', tf.reduce_mean(dice))
         test_cost = tf.summary.scalar('test_cost', cost)
-        merged_summary_test = tf.summary.merge([test_dice, test_dice_histogram, test_dice_average, test_cost])
+        merged_summary_test = tf.summary.merge([test_cost])
 
         writer = tf.summary.FileWriter(logdir=tensorboard_dir)
         writer.add_graph(sess.graph)  # Add the pretty graph viz
@@ -121,19 +115,12 @@ def train(train_dataset, test_dataset):
         logger.info("Training complete.")
 
 
-def _reshape(sample_image, labels):
-    return sample_image, labels
-
-
-def _crop(sample_image, labels):
-    return sample_image, labels
-
-
-def create_data_pipeline():
-    datasets = [load_dataset(config.tfrecords_dir)
+def create_data_pipeline(human_protein_atlas):
+    datasets = [load_dataset(human_protein_atlas, split)
+                for split in (Split.train, Split.test, Split.validation)]
 
     for i, dataset in enumerate(datasets):
-        datasets[i] = datasets[i].map(_reshape).map(_crop)
+        datasets[i] = preprocess_dataset(datasets[i])
 
     train_dataset, test_dataset, validation_dataset = datasets
 
@@ -151,6 +138,7 @@ def create_data_pipeline():
     test_dataset = test_dataset.batch(params.mini_batch_size)
 
     return train_dataset, test_dataset, validation_dataset
+
 
 def _get_optimizer(cost, global_step):
     if params.adam:
@@ -195,9 +183,9 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     logger.debug("TFRecords: %s" % config.tfrecords_dir)
 
+    human_protein_atlas = Dataset(config.dataset_directory)
 
-
-    train_dataset, test_dataset, _ = create_data_pipeline()
+    train_dataset, test_dataset, _ = create_data_pipeline(human_protein_atlas)
 
     logger.info("Initiating training...")
     logger.debug("TensorBoard Directory: %s" % config.tensorboard_dir)

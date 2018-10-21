@@ -12,11 +12,11 @@ from partitions import Split, partitions
 
 
 def load_dataset(dataset, split):
-    """ Loads a dataset into a TensorFlow
+    """ Loads a dataset into a TensorFlow Dataset
 
-    :param dataset:
-    :param split:
-    :return:
+    :param dataset: HumanProteinAtlas dataset
+    :param split: which partition to use
+    :return: TensorFlow Dataset made from the HumanProteinAtlas dataset
     """
     assert isinstance(dataset, Dataset)
     assert isinstance(split, Split)
@@ -25,6 +25,6 @@ def load_dataset(dataset, split):
         for sample_id in partitions[split]:
             sample = dataset.sample(sample_id)
             assert isinstance(sample, Sample)
-            yield sample.multi_channel, sample.labels
+            yield sample.multi_channel, sample.one_hot_label
 
     return tf.data.Dataset.from_generator(sample_generator)

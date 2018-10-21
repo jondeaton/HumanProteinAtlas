@@ -8,6 +8,7 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 import imageio
 import numpy as np
 from enum import Enum
+from HumanProteinAtlas import Organelle
 
 
 class Color(Enum):
@@ -36,6 +37,7 @@ class Sample:
         self.id = sample_id
         self.color_ordering = color_ordering
         self.labels = labels
+        self._one_hot_labels = None
 
         # private
         self._images_dir = images_dir
@@ -110,6 +112,16 @@ class Sample:
         if self._cache:
             self._images[color] = img
         return img
+
+    @property
+    def one_hot_label(self):
+        if self._one_hot_labels is None:
+            a = np.array(self.labels)
+            b = np.zeros((a.size, list(Organelle)))
+            b[np.arange(a.size), a] = 1
+            self._one_hot_labels = np.sum(b, axis=0)
+        return self._one_hot_labels
+
 
     def drop_cache(self):
         self._images = dict()
