@@ -9,16 +9,19 @@ import os
 import sys
 import argparse
 import logging
+import datetime
 
+import numpy as np
 import tensorflow as tf
 
+import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
 
 
 def train(train_dataset, test_dataset):
-    """
-    Train the model
+    """Train the model
+
     :param train_dataset: Training dataset
     :param test_dataset: Testing/dev dataset
     :return: None
@@ -33,30 +36,17 @@ def train(train_dataset, test_dataset):
     train_iterator = train_dataset.make_initializable_iterator()
     test_iterator = test_dataset.make_initializable_iterator()
 
-    # MRI input and ground truth segmentations
-    input, seg = iterator.get_next()
+    input, labels = iterator.get_next()
     input = tf.identity(input, "input")
 
     # Create the model's computation graph and cost function
     logger.info("Instantiating model...")
-    output, is_training = UNet.model(input, seg, params.multi_class, params.patch)
+    output, is_training = deep_model.model(input, labels)
     output = tf.identity(output, "output")
 
-    '''if params.patch:
-        output = _to_patch_prediction(output)'''
-
-    if params.multi_class:
-        pred = _to_prediction(output, params.multi_class)
-        dice = multi_class_dice(seg, pred)
-    else:
-        dice = dice_coeff(seg, output)
-
     # Cost function
-    if params.loss == loss.dice:
-        cost = - dice
-    else:
-        x_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=seg, logits=output)
-        cost = tf.reduce_mean(x_entropy)
+    xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=output)
+    cost = tf.reduce_mean(xS)
 
     # Define the optimization strategy
     global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -131,6 +121,57 @@ def train(train_dataset, test_dataset):
         logger.info("Training complete.")
 
 
+def _reshape(sample_image, labels):
+    return sample_image, labels
+
+
+def _crop(sample_image, labels):
+    return sample_image, labels
+
+
+def create_data_pipeline():
+    datasets = [load_dataset(config.tfrecords_dir)
+
+    for i, dataset in enumerate(datasets):
+        datasets[i] = datasets[i].map(_reshape).map(_crop)
+
+    train_dataset, test_dataset, validation_dataset = datasets
+
+    # Dataset augmentation
+    if params.augment:
+        train_dataset = augment_dataset(train_dataset)
+
+    # Shuffle, repeat, batch, prefetch the training dataset
+    train_dataset = train_dataset.shuffle(params.shuffle_buffer_size)
+    train_dataset = train_dataset.batch(params.mini_batch_size)
+    train_dataset = train_dataset.prefetch(buffer_size=params.prefetch_buffer_size)
+
+    # Shuffle/batch test dataset
+    test_dataset = test_dataset.shuffle(params.shuffle_buffer_size)
+    test_dataset = test_dataset.batch(params.mini_batch_size)
+
+    return train_dataset, test_dataset, validation_dataset
+
+def _get_optimizer(cost, global_step):
+    if params.adam:
+        # With Adam optimization: no learning rate decay
+        learning_rate = tf.constant(params.learning_rate, dtype=tf.float32)
+        sgd = tf.train.AdamOptimizer(learning_rate=learning_rate, name="Adam")
+    else:
+        # Set up Stochastic Gradient Descent Optimizer with exponential learning rate decay
+        learning_rate = tf.train.exponential_decay(params.learning_rate, global_step=global_step,
+                                                   decay_steps=100000, decay_rate=params.learning_decay_rate,
+                                                   staircase=False, name="learning_rate")
+        sgd = tf.train.GradientDescentOptimizer(learning_rate=learning_rate, name="SGD")
+    optimizer = sgd.minimize(cost, name='optimizer', global_step=global_step)
+    return optimizer, learning_rate
+
+
+def _get_job_name():
+    now = '{:%Y-%m-%d.%H:%M}'.format(datetime.datetime.now())
+    return "%s_lr_%.4f" % (now, params.learning_rate)
+
+
 def main():
     args = parse_args()
 
@@ -151,14 +192,12 @@ def main():
     tf.set_random_seed(params.seed)
 
     logger.info("Creating data pre-processing pipeline...")
-    logger.debug("Human Protein Atlas dataset: %s" % config.brats_directory)
+    logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     logger.debug("TFRecords: %s" % config.tfrecords_dir)
 
-    # get patch indices
-    '''if params.patch:
-        patch_indices = get_patch_indices(params.patches_per_image, mri_shape, params.patch_shape, seg)'''
 
-    train_dataset, test_dataset, validation_dataset = create_data_pipeline(params.multi_class)
+
+    train_dataset, test_dataset, _ = create_data_pipeline()
 
     logger.info("Initiating training...")
     logger.debug("TensorBoard Directory: %s" % config.tensorboard_dir)

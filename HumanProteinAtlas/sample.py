@@ -30,11 +30,12 @@ default_color_ordering = {color: idx for idx, color in enumerate(colors.values()
 
 
 class Sample:
-    def __init__(self, sample_id, images_dir, cache=False,
+    def __init__(self, sample_id, labels, images_dir, cache=False,
                  color_ordering=default_color_ordering):
         # public
         self.id = sample_id
         self.color_ordering = color_ordering
+        self.labels = labels
 
         # private
         self._images_dir = images_dir
@@ -63,7 +64,7 @@ class Sample:
         return self.image(Color.blue)
 
     @property
-    def combined(self):
+    def multi_channel(self):
         """
 
         the first time that we call this all the images
@@ -115,25 +116,24 @@ class Sample:
         self._image_locations = dict()
         self._combined = None
 
-    def show_single(self, color):
-        # debugging
-        if isinstance(color, str):
-            color = colors[color]
-        import matplotlib.pyplot as plt
-        plt.imshow(self.image(color))
-
-    def show(self):
+    def show(self, color=None):
         # for debugging
         import matplotlib.pyplot as plt
-        comb = np.empty((3,) + self.shape)
-        comb[0] = self.red
-        comb[1] = self.green
-        comb[2] = self.blue
+        if color is None:
+            comb = np.empty((3,) + self.shape)
+            comb[0] = self.red
+            comb[1] = self.green
+            comb[2] = self.blue
 
-        comb[0] += self.yellow / 2
-        comb[1] += self.yellow / 2
+            comb[0] += self.yellow / 2
+            comb[1] += self.yellow / 2
 
-        plt.imshow(comb)
+            plt.imshow(comb)
+
+        else:
+            if isinstance(color, str):
+                color = colors[color]
+            plt.imshow(self.image(color))
 
     @property
     def image_locations(self):

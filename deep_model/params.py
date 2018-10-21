@@ -46,6 +46,10 @@ class Params():
         return self.__dict__
 
     @property
+    def adam(self):
+        return self.dict["adam"]
+
+    @property
     def learning_rate(self):
         return self.dict["learning_rate"]
 
@@ -63,6 +67,10 @@ class Params():
 
     @property
     def mini_batch_size(self):
+        return self.dict["mini_batch_size"]
+
+    @property
+    def augment(self):
         return self.dict["mini_batch_size"]
 
     @property

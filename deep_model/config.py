@@ -10,6 +10,7 @@ import configparser
 dir_name = os.path.dirname(__file__)
 default_config_file = os.path.join(dir_name, "config_local.ini")
 
+
 class Configuration(object):
 
     def __init__(self, config_file=default_config_file):

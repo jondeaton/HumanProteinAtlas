@@ -8,6 +8,9 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 import tensorflow as tf
 
 
-def model(input):
+def model(input, labels):
 
     is_training = tf.placeholder(tf.bool)
+
+
+    multi_hot_label = tf.multi

@@ -5,7 +5,8 @@ Date: 10/19/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
-from HumanProteinAtlas.data_set import *
+from HumanProteinAtlas.dataset import Dataset
+from HumanProteinAtlas.sample import Sample
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
