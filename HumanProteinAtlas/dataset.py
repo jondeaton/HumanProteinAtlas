@@ -49,7 +49,7 @@ class Dataset:
             return self._samples[sample_id]
 
         labels = self.sample_labels[sample_id]
-        s = sample.Sample(sample_id, labels, self.path, cache=self._cache)
+        s = sample.Sample(sample_id, labels, self.data_path, cache=self._cache)
         if self._cache:
             self._samples[sample_id] = s
         return s

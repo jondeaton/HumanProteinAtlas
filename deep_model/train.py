@@ -22,6 +22,7 @@ from HumanProteinAtlas import Dataset
 from partitions import Split
 from preprocessing import load_dataset, augment_dataset, preprocess_dataset
 
+
 def train(train_dataset, test_dataset):
     assert isinstance(train_dataset, tf.data.Dataset)
     assert isinstance(test_dataset, tf.data.Dataset)

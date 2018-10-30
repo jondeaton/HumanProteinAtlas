@@ -27,6 +27,7 @@ def down_block(input, is_training, num_filters, name='down_level'):
                                            data_format='channels_first', name='max_pool')
         return max_pool
 
+
 def conv_block(input, is_training, num_filters, name='conv'):
     """ Convolution and batch normalization layer
 
@@ -70,7 +71,6 @@ def model(input, labels):
             with tf.variable_scope("layer-%d" % str(i)):
                 next_layer = conv_block(layers[-1], is_training, 8 * 2 ** i)
                 layers.append(next_layer)
-
 
     with tf.variable_scope("dense"):
         for i in range(num_dense):

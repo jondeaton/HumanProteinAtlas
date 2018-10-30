@@ -5,6 +5,7 @@ Date: 10/19/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
+import os
 import imageio
 import numpy as np
 from enum import Enum
@@ -98,6 +99,9 @@ class Sample:
         return combined
 
     def image(self, color):
+        if isinstance(color, str):
+            color = colors[color]
+
         assert isinstance(color, Color)
 
         if self._combined is not None:
@@ -122,7 +126,6 @@ class Sample:
             self._one_hot_labels = np.sum(b, axis=0)
         return self._one_hot_labels
 
-
     def drop_cache(self):
         self._images = dict()
         self._image_locations = dict()
@@ -132,20 +135,24 @@ class Sample:
         # for debugging
         import matplotlib.pyplot as plt
         if color is None:
-            comb = np.empty((3,) + self.shape)
-            comb[0] = self.red
-            comb[1] = self.green
-            comb[2] = self.blue
+            comb = np.ones(self.shape + (3,))
+            comb[:, :, 0] = self.red / 256
+            comb[:, :, 1] = self.green / 256
+            comb[:, :, 2] = self.blue / 256
 
-            comb[0] += self.yellow / 2
-            comb[1] += self.yellow / 2
+            comb[:, :, 0] += self.yellow / (2 * 256)
+            comb[:, :, 1] += self.yellow / (2 * 256)
 
             plt.imshow(comb)
+            plt.title("Sample: %s (combined)" % self.id)
+            plt.show()
 
         else:
             if isinstance(color, str):
                 color = colors[color]
             plt.imshow(self.image(color))
+            plt.title("Sample: %s (%s)" % (self.id, colors[color]))
+            plt.show()
 
     @property
     def image_locations(self):
@@ -159,7 +166,8 @@ class Sample:
 
     def location(self, color):
         color_name = color_names[color]
-        return "{id}_{color}.png".format(id=self.id, color=color_name)
+        fname = "{id}_{color}.png".format(id=self.id, color=color_name)
+        return os.path.join(self._images_dir, fname)
 
     @property
     def shape(self):
