@@ -64,6 +64,9 @@ class Dataset:
         if sample_id in self._samples:
             return self._samples[sample_id]
 
+        if sample_id not in self.sample_labels:
+            raise ValueError("Non-esitatnt sample: %s" % sample_id)
+
         labels = self.sample_labels[sample_id]
         s = sample.Sample(sample_id, labels, self.data_path, cache=self._cache)
         if self._cache:

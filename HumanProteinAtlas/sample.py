@@ -121,7 +121,7 @@ class Sample:
     def one_hot_label(self):
         if self._one_hot_labels is None:
             a = np.array(self.labels)
-            b = np.zeros((a.size, list(Organelle)))
+            b = np.zeros((a.size, len(Organelle)))
             b[np.arange(a.size), a] = 1
             self._one_hot_labels = np.sum(b, axis=0)
         return self._one_hot_labels

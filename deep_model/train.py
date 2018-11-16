@@ -87,11 +87,11 @@ def train(train_dataset, test_dataset):
 
             while True:
                 try:
-                    train_summary, _, c, d = sess.run([merged_summary_train, optimizer, cost, dice],
+                    train_summary, _, c = sess.run([merged_summary_train, optimizer, cost],
                                                       feed_dict={is_training: True,
                                                                  dataset_handle: train_handle})
 
-                    logger.info("Epoch: %d, Batch %d: cost: %f, dice: %f" % (epoch, batch, c, d))
+                    logger.info("Epoch: %d, Batch %d: cost: %f" % (epoch, batch, c))
                     writer.add_summary(train_summary, global_step=sess.run(global_step))
 
                     batch += 1
@@ -101,7 +101,7 @@ def train(train_dataset, test_dataset):
                         sess.run(test_iterator.initializer)
                         test_handle = sess.run(test_iterator.string_handle())
 
-                        test_summary, test_avg = sess.run([merged_summary_test, test_dice_average],
+                        test_summary, test_avg = sess.run([merged_summary_test],
                                                           feed_dict={is_training: False,
                                                                      dataset_handle: test_handle})
                         writer.add_summary(test_summary, global_step=sess.run(global_step))

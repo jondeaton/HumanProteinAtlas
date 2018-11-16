@@ -49,4 +49,5 @@ class Partitions:
     def _get_ids(split_file):
         if os.path.isfile(split_file):
             with open(split_file, 'r') as f:
-                return f.readlines()
+                lines = f.readlines()
+                return list(line.strip() for line in lines)
