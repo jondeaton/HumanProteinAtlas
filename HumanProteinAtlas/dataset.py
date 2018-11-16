@@ -54,6 +54,13 @@ class Dataset:
             self._samples[sample_id] = s
         return s
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        for sample_id in self.sample_ids:
+            return self.sample(sample_id)
+
     def samples(self):
         # caution: this function reads every single sample's
         # meta-data into memory

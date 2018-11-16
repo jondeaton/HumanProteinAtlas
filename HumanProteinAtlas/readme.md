@@ -21,18 +21,36 @@ this dataset object represents the entire training dataset provided by the human
 atlas including meta data. This is organized as a collection of samples. You can 
 access a single sample like so
 
-    sample_id = dataset.sample_ids[0] # get the first sample ID
-    sample = dataset.sample(sample_id)
-    
     # or loop through them all like this
     for sample_id in dataset.sample_ids:
         sample = dataset.sample(sample_id)
+        
+    # or like this
+    for sample in dataset:
+        sample.show() # for example
 
-once you have a sample object you can access the images/labels like so
+    # or just get a specific one
+    sample_id = dataset.sample_ids[0]
+    sample = dataset.sample(sample_id)
+
+Let's say you want to only loop through the samples in the training set. 
+First import the training ids from `partitions` and then access the
+set of training ids with `Split.train`.
+
+
+    from partitions import Split, partitions
+    
+    for sample_id in partitions[Split.train]:
+        sample = dataset.sample(sample_id)
+
+You could also use `Split.test` and `Split.validation` to access
+the test and validation sets.
+Once you have a sample object you can access the images/labels like so
 
     sample.red # the red channel image (numpy array)
     sample.multi_channel # red, blue, gree, yellow channels (numpy array)
     sample.labels # python list of localization label (0, 27) inclusive
+    sample.id # access the id again
     
     sample.show() # displays an image of the multi-channel image
 
@@ -40,5 +58,4 @@ once you have a sample object you can access the images/labels like so
 Note that access to every image/label is loaded lazily. That is, the entire dataset will
 not be loaded into memory up-front but only if you end up touching every single sample.
 Also, you can optionally have this loader cache any of the images that are loaded in.
-
 
