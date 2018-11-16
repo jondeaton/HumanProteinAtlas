@@ -165,7 +165,10 @@ def main():
     args = parse_args()
 
     global config
-    config = Configuration(args.config)
+    if args.config is not None:
+        config = Configuration(args.config)
+    else:
+        config = Configuration() # use default
 
     global params
     if args.params is not None:
@@ -182,7 +185,6 @@ def main():
 
     logger.info("Creating data pre-processing pipeline...")
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
-    logger.debug("TFRecords: %s" % config.tfrecords_dir)
 
     human_protein_atlas = Dataset(config.dataset_directory)
 
@@ -205,7 +207,7 @@ def parse_args():
 
     info_options = parser.add_argument_group("Info")
     info_options.add_argument("-params", "--params", type=str, help="Hyperparameters json file")
-    info_options.add_argument("--config", required=True, type=str, help="Configuration file")
+    info_options.add_argument("--config", required=False, type=str, help="Configuration file")
 
     input_options = parser.add_argument_group("Input")
     input_options.add_argument('--path', help="Dataset input file")

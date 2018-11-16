@@ -7,7 +7,7 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 
 import tensorflow as tf
 
-from HumanProteinAtlas import Dataset, Sample
+from HumanProteinAtlas import Dataset, Sample, Organelle
 from partitions import Split, partitions
 
 
@@ -27,4 +27,10 @@ def load_dataset(dataset, split):
             assert isinstance(sample, Sample)
             yield sample.multi_channel, sample.one_hot_label
 
-    return tf.data.Dataset.from_generator(sample_generator)
+    sample_shape_shape = dataset.shape[1:]
+    label_shape = (len(Organelle),)
+
+    return tf.data.Dataset.from_generator(sample_generator,
+                                          output_types=(tf.float32, tf.float32),
+                                          output_shapes=(tf.TensorShape(sample_shape_shape),
+                                                         tf.TensorShape(label_shape)))

@@ -27,10 +27,10 @@ def _adjust(image, label):
 
 
 def _flip_left_right(image, label):
-    with tf.VariableScope("random_flip_left_right"):
+    with tf.variable_scope("random_flip_left_right"):
         return tf.image.flip_left_right(image), label
 
 
 def _flip_up_down(image, label):
-    with tf.VariableScope("random_flip_up_down"):
+    with tf.variable_scope("random_flip_up_down"):
         return tf.image.flip_up_down(image), label

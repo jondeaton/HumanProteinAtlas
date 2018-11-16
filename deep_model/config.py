@@ -8,13 +8,12 @@ import os
 import configparser
 
 dir_name = os.path.dirname(__file__)
-default_config_file = os.path.join(dir_name, "config_local.ini")
+default_config_file = os.path.join(dir_name, "config.ini")
 
 
 class Configuration(object):
 
     def __init__(self, config_file=default_config_file):
-
         assert isinstance(config_file, str)
         # Setup the filesystem configuration
         self._config_file = os.path.join(config_file)
@@ -23,7 +22,6 @@ class Configuration(object):
         c = self._config
 
         self.dataset_directory = os.path.expanduser(c["Data"]["path"])
-        self.tfrecords_dir = os.path.expanduser(c["Data"]["TFRecords"])
         self.model_file = os.path.expanduser(c["Output"]["save-file"])
 
         self.tensorboard_dir = os.path.expanduser(c["TensorFlow"]["tensorboard-dir"])

@@ -6,6 +6,7 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
 import tensorflow as tf
+import numpy as np
 from HumanProteinAtlas import Organelle
 
 
@@ -23,7 +24,7 @@ def down_block(input, is_training, num_filters, name='down_level'):
         conv2 = conv_block(conv1, is_training, num_filters=num_filters, name='conv2')
 
         max_pool = tf.layers.max_pooling2d(conv2,
-                                           pool_size=(2,2,2), strides=2,
+                                           pool_size=(2,2), strides=2,
                                            data_format='channels_first', name='max_pool')
         return max_pool
 
@@ -42,7 +43,7 @@ def conv_block(input, is_training, num_filters, name='conv'):
         bias_initializer = tf.zeros_initializer(dtype=tf.float32)
 
         conv = tf.layers.conv2d(input,
-                                filters=num_filters, kernel_size=(3,3,3), strides=(1,1,1), padding='same',
+                                filters=num_filters, kernel_size=(3,3), strides=(1,1), padding='same',
                                 data_format='channels_first', activation=None, use_bias=True,
                                 kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)
 
@@ -62,22 +63,40 @@ def conv_block(input, is_training, num_filters, name='conv'):
 def model(input, labels):
     is_training = tf.placeholder(tf.bool)
 
-    num_conv = 4
-    num_dense = 4
+    num_conv = 2
+    num_dense = 2
 
-    layers = list(input)
+    layers = list()
+    layers.append(input)
+
     with tf.variable_scope("convolutional"):
         for i in range(num_conv):
-            with tf.variable_scope("layer-%d" % str(i)):
-                next_layer = conv_block(layers[-1], is_training, 8 * 2 ** i)
+            with tf.variable_scope("layer-%d" % i):
+                num_filters = 8 * 2 ** i
+                next_layer = down_block(layers[-1], is_training, num_filters)
                 layers.append(next_layer)
+
+    last_conv_layer = layers[-1]
+    new_shape = np.prod(last_conv_layer.shape[1:])
+    reshaped = tf.reshape(layers[-1], [-1,] + [new_shape])
+    layers.append(reshaped)
 
     with tf.variable_scope("dense"):
         for i in range(num_dense):
-            with tf.variable_scope("layer-%d" % str(i)):
-                next_layer = tf.layers.dense(layers[-1], 32, activation='relu')
+            with tf.variable_scope("layer-%d" % i):
+                size = 256 / (2 ** i)
+                next_layer = tf.layers.dense(layers[-1], size, activation='relu')
+
+                dropout_layer = tf.layers.dropout(inputs=next_layer,
+                                  rate=0.2,
+                                  training=is_training)
+
                 layers.append(next_layer)
+                layers.append(dropout_layer)
+
+    last_dense_layer = layers[-1]
+    n_logits = len(Organelle)
 
     with tf.variable_scope("softmax"):
-        logits = tf.nn.softmax(layers[-1], len(Organelle), name="softmax")
-        return logits
+        logits = tf.layers.dense(last_dense_layer, n_logits, name="logits")
+        return logits, is_training
