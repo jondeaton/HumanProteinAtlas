@@ -61,7 +61,7 @@ def conv_block(input, is_training, num_filters, name='conv'):
 
 
 def model(input, labels):
-    is_training = tf.placeholder(tf.bool, name="Placeholder_1:0")
+    is_training = tf.placeholder(tf.bool)
 
     num_conv = 2
     num_dense = 2

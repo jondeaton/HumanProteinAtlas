@@ -18,15 +18,21 @@ from partitions import partitions, Split
 
 import evaluation
 
+def multi_hot_to_list(multi_hot, threshold=0.5):
+    l = list()
+    for i in range(len(multi_hot)):
+        if multi_hot[i] > threshold:
+            l.append(i)
+    return l
 
 def evaluate_on(run_model, test_ids, output_dir):
     dataset = HumanProteinAtlas.Dataset(config.dataset_directory)
 
     for id in test_ids:
         sample = dataset.sample(id)
-        pred_labels = run_model(sample.multi_channel)
-        print("%s:\t real: %s \t prediction: %s" % (sample.id, sample.labels, ))
-
+        prediction = run_model(sample.multi_channel)
+        pred_labels = multi_hot_to_list(prediction)
+        print("%s:\t real: %s \t prediction: %s" % (sample.id, sample.labels, pred_labels))
 
 
 def evaluate(run_model, output_dir):
