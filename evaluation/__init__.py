@@ -5,10 +5,5 @@ Date: 11/15/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
+from evaluation.metrics import metrics
 
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()
