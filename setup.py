@@ -2,7 +2,6 @@ from setuptools import find_packages
 from setuptools import setup
 
 required_packages = [
-    "tensorflow",
     "tensorflow-gpu",
     "numpy",
     "matplotlib",

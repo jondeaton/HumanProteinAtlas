@@ -101,9 +101,9 @@ def train(train_dataset, test_dataset):
                         sess.run(test_iterator.initializer)
                         test_handle = sess.run(test_iterator.string_handle())
 
-                        test_summary, test_avg = sess.run([merged_summary_test],
-                                                          feed_dict={is_training: False,
-                                                                     dataset_handle: test_handle})
+                        test_summary = sess.run(merged_summary_test,
+                                                    feed_dict={is_training: False,
+                                                                dataset_handle: test_handle})
                         writer.add_summary(test_summary, global_step=sess.run(global_step))
 
                 except tf.errors.OutOfRangeError:
