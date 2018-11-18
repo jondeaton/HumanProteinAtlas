@@ -89,7 +89,7 @@ def model(input, labels):
                 next_layer = tf.layers.dense(layers[-1], size, activation='relu')
 
                 dropout_layer = tf.layers.dropout(inputs=next_layer,
-                                  rate=0.2,
+                                  rate=0.0,
                                   training=is_training)
 
                 layers.append(next_layer)
@@ -99,5 +99,5 @@ def model(input, labels):
     n_logits = len(Organelle)
 
     with tf.variable_scope("softmax"):
-        logits = tf.layers.dense(last_dense_layer, n_logits, name="logits")
-        return logits, is_training
+        outputs = tf.layers.dense(last_dense_layer, n_logits, name="logits")
+        return outputs, is_training

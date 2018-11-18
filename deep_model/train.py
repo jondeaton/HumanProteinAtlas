@@ -48,8 +48,9 @@ def train(train_dataset, test_dataset):
     xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=output)
     cost = tf.reduce_mean(xS)
 
-    predictions = tf.to_int32(output > 0.5)
-    accuracy = tf.metrics.accuracy(labels, predictions)
+    logits = tf.sigmoid(output)
+    correct_prediction = tf.equal(tf.round(logits), tf.round(labels))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     # Define the optimization strategy
     global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -57,6 +58,7 @@ def train(train_dataset, test_dataset):
 
     logger.info("Training...")
     init = tf.global_variables_initializer()
+    init_l = tf.local_variables_initializer()
 
     with tf.Session() as sess:
 
@@ -75,6 +77,7 @@ def train(train_dataset, test_dataset):
 
         # Initialize graph, data iterators, and model saver
         sess.run(init)
+        sess.run(init_l)
         train_handle = sess.run(train_iterator.string_handle())
         saver = tf.train.Saver(save_relative_paths=True)
         saver.save(sess, config.model_file, global_step=global_step)
@@ -150,7 +153,7 @@ def create_data_pipeline(human_protein_atlas):
 
     # Shuffle/batch test dataset
     test_dataset = test_dataset.shuffle(params.shuffle_buffer_size)
-    test_dataset = test_dataset.batch(params.mini_batch_size)
+    test_dataset = test_dataset.batch(params.test_batch_size)
 
     return train_dataset, test_dataset, validation_dataset
 
