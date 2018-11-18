@@ -48,6 +48,9 @@ def train(train_dataset, test_dataset):
     xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=output)
     cost = tf.reduce_mean(xS)
 
+    predictions = tf.to_int32(output > 0.5)
+    accuracy = tf.metrics.accuracy(labels, predictions)
+
     # Define the optimization strategy
     global_step = tf.Variable(0, name='global_step', trainable=False)
     optimizer, learning_rate = _get_optimizer(cost, global_step)
@@ -64,7 +67,8 @@ def train(train_dataset, test_dataset):
 
         # Configure TensorBoard test data
         test_cost = tf.summary.scalar('test_cost', cost)
-        merged_summary_test = tf.summary.merge([test_cost])
+        test_accuracy = tf.summary.scalar('test_accuracy', accuracy)
+        merged_summary_test = tf.summary.merge([test_cost, test_accuracy])
 
         writer = tf.summary.FileWriter(logdir=tensorboard_dir)
         writer.add_graph(sess.graph)  # Add the pretty graph viz
@@ -76,7 +80,7 @@ def train(train_dataset, test_dataset):
         saver.save(sess, config.model_file, global_step=global_step)
 
         # frequency (number of batches) after which we display test error
-        tb_freq = np.round(config.tensorboard_freq / params.mini_batch_size)
+        tb_freq = np.round(config.tensorboard_freq)
 
         # Training epochs
         for epoch in range(params.epochs):
@@ -96,7 +100,7 @@ def train(train_dataset, test_dataset):
 
                     batch += 1
                     if batch % tb_freq == 0:
-                        logger.info("logging test output to TensorBoard")
+                        logger.info("Logging test output to TensorBoard")
                         # Generate stats for test dataset
                         sess.run(test_iterator.initializer)
                         test_handle = sess.run(test_iterator.string_handle())
@@ -104,7 +108,17 @@ def train(train_dataset, test_dataset):
                         test_summary = sess.run(merged_summary_test,
                                                     feed_dict={is_training: False,
                                                                 dataset_handle: test_handle})
+
+                        acc = sess.run(accuracy, feed_dict={is_training: False,
+                                                            dataset_handle: test_handle})
+
+                        logger.info("Test accuracy: %s" % acc)
                         writer.add_summary(test_summary, global_step=sess.run(global_step))
+
+                    if batch % config.save_freq == 0:
+                        logger.info("Saving model...")
+                        saver.save(sess, config.model_file, global_step=global_step)
+                        logger.info("Model save complete.")
 
                 except tf.errors.OutOfRangeError:
                     logger.info("End of epoch %d" % epoch)

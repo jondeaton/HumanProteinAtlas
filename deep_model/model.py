@@ -48,8 +48,9 @@ def conv_block(input, is_training, num_filters, name='conv'):
                                 kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)
 
         # Batch normalization before activation
+        # todo: axis = 1??
         bn = tf.layers.batch_normalization(conv,
-                                           axis=-1, momentum=0.9,
+                                           axis=1, momentum=0.9,
                                            epsilon=0.001, center=True, scale=True,
                                            training=is_training, name='bn')
 
