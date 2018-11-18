@@ -58,8 +58,13 @@ def train(train_dataset, test_dataset):
         cost = tf.reduce_mean(xS)
 
     logits = tf.sigmoid(output)
-    correct_prediction = tf.equal(tf.round(logits), tf.round(labels))
+    correct_prediction = tf.equal(output, tf.round(labels))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+    positive_correct = tf.equal(correct_prediction, tf.cast(labels, tf.bool))
+    total_positive_correct = tf.reduce_sum(positive_correct)
+    total_positive = tf.reduce_sum(labels)
+    positive_accuracy = total_positive_correct / total_positive
 
     # Define the optimization strategy
     global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -79,7 +84,8 @@ def train(train_dataset, test_dataset):
         # Configure TensorBoard test data
         test_cost = tf.summary.scalar('test_cost', cost)
         test_accuracy = tf.summary.scalar('test_accuracy', accuracy)
-        merged_summary_test = tf.summary.merge([test_cost, test_accuracy])
+        test_pos_accuracy = tf.summary.scalar('test_positive_accuracy', positive_accuracy)
+        merged_summary_test = tf.summary.merge([test_cost, test_accuracy, test_pos_accuracy])
 
         writer = tf.summary.FileWriter(logdir=tensorboard_dir)
         writer.add_graph(sess.graph)  # Add the pretty graph viz
@@ -124,7 +130,11 @@ def train(train_dataset, test_dataset):
                         acc = sess.run(accuracy, feed_dict={is_training: False,
                                                             dataset_handle: test_handle})
 
-                        logger.info("Test accuracy: %s" % acc)
+                        pos_acc = sess.run(positive_accuracy,
+                                           feed_dict={is_training: False,
+                                                      dataset_handle: test_handle})
+
+                        logger.info("Test accuracy: %s, Positive Accuracy: %s" % (acc, positive_accuracy))
                         writer.add_summary(test_summary, global_step=sess.run(global_step))
 
                     if batch % config.save_freq == 0:
