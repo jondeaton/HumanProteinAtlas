@@ -51,7 +51,7 @@ def train(train_dataset, test_dataset):
                                                          logits=output)
         else:
             # weighted cross-entropy
-            xS = tf.nn.weighted_cross_entropy_with_logits(labels=labels,
+            xS = tf.nn.weighted_cross_entropy_with_logits(targets=labels,
                                                           logits=output,
                                                           pos_weight=params.positive_weight)
 
