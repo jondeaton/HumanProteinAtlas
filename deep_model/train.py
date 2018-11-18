@@ -47,13 +47,13 @@ def train(train_dataset, test_dataset):
     # Cost function
     with tf.variable_scope("cost"):
         if params.cost == "unweighted":
-            xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=output)
+            xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
+                                                         logits=output)
         else:
             # weighted cross-entropy
-            w = params.positive_weight
-            positive_cost = - w * labels * tf.log(tf.sigmoid(output))
-            negative_cost = - (1 - labels) * tf.log(1 - tf.sigmoid(output))
-            xS = positive_cost + negative_cost
+            xS = tf.nn.weighted_cross_entropy_with_logits(labels=labels,
+                                                          logits=output,
+                                                          pos_weight=params.positive_weight)
 
         cost = tf.reduce_mean(xS)
 
