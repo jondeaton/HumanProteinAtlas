@@ -61,7 +61,7 @@ def conv_block(input, is_training, num_filters, name='conv'):
         return act
 
 
-def model(input, labels):
+def model(input, labels, params=None):
     is_training = tf.placeholder(tf.bool)
 
     num_conv = 2
@@ -88,8 +88,9 @@ def model(input, labels):
                 size = 256 / (2 ** i)
                 next_layer = tf.layers.dense(layers[-1], size, activation='relu')
 
-                dropout_layer = tf.layers.dropout(inputs=next_layer,
-                                  rate=0.0,
+                if params is not None and params.dropout:
+                    dropout_layer = tf.layers.dropout(inputs=next_layer,
+                                  rate=params.dropout_rate,
                                   training=is_training)
 
                 layers.append(next_layer)

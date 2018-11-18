@@ -50,6 +50,22 @@ class Params():
         return self.dict["adam"]
 
     @property
+    def cost(self):
+        return self.dict["cost"]
+
+    @property
+    def positive_weight(self):
+        return self.dict["positive_weight"]
+
+    @property
+    def dropout(self):
+        return self.dict["dropout"]
+
+    @property
+    def dropout_rate(self):
+        return self.dict["dropout_rate"]
+
+    @property
     def learning_rate(self):
         return self.dict["learning_rate"]
 
@@ -71,7 +87,7 @@ class Params():
 
     @property
     def augment(self):
-        return self.dict["mini_batch_size"]
+        return self.dict["augment"]
 
     @property
     def seed(self):

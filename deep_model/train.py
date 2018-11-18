@@ -41,12 +41,21 @@ def train(train_dataset, test_dataset):
 
     # Create the model's computation graph and cost function
     logger.info("Instantiating model...")
-    output, is_training = deep_model.model(input, labels)
+    output, is_training = deep_model.model(input, labels, params=params)
     output = tf.identity(output, "output")
 
     # Cost function
-    xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=output)
-    cost = tf.reduce_mean(xS)
+    with tf.variable_scope("cost"):
+        if params.cost == "unweighted":
+            xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=output)
+        else:
+            # weighted cross-entropy
+            w = params.positive_weight
+            positive_cost = - w * labels * tf.log(tf.sigmoid(output))
+            negative_cost = - (1 - labels) * tf.log(1 - tf.sigmoid(output))
+            xS = positive_cost + negative_cost
+
+        cost = tf.reduce_mean(xS)
 
     logits = tf.sigmoid(output)
     correct_prediction = tf.equal(tf.round(logits), tf.round(labels))
