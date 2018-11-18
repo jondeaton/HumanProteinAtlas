@@ -62,8 +62,8 @@ def train(train_dataset, test_dataset):
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     positive_correct = tf.equal(correct_prediction, tf.cast(labels, tf.bool))
-    total_positive_correct = tf.reduce_sum(positive_correct)
-    total_positive = tf.reduce_sum(labels)
+    total_positive_correct = tf.reduce_sum(tf.cast(positive_correct, tf.float32))
+    total_positive = tf.reduce_sum(tf.cast(labels, tf.float32))
     positive_accuracy = total_positive_correct / total_positive
 
     # Define the optimization strategy
