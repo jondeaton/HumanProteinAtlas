@@ -58,7 +58,7 @@ def train(train_dataset, test_dataset):
         cost = tf.reduce_mean(xS)
 
     logits = tf.sigmoid(output)
-    correct_prediction = tf.equal(output, tf.round(labels))
+    correct_prediction = tf.equal(tf.round(logits), tf.round(labels))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     positive_correct = tf.equal(correct_prediction, tf.cast(labels, tf.bool))
@@ -134,7 +134,7 @@ def train(train_dataset, test_dataset):
                                            feed_dict={is_training: False,
                                                       dataset_handle: test_handle})
 
-                        logger.info("Test accuracy: %s, Positive Accuracy: %s" % (acc, positive_accuracy))
+                        logger.info("Test accuracy: %s, Positive Accuracy: %s" % (acc, pos_acc))
                         writer.add_summary(test_summary, global_step=sess.run(global_step))
 
                     if batch % config.save_freq == 0:
