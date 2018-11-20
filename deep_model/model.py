@@ -54,30 +54,30 @@ class HPA_CNN_Model(object):
             logits = tf.layers.dense(last_dense_layer, n_logits, name="logits")
             outputs = tf.sigmoid(logits)
 
-        return outputs, logits, self._cost(outputs, labels)
+        return outputs, logits, self._cost(logits, labels)
 
-    def _cost(self, output, labels):
+    def _cost(self, logits, labels):
         with tf.variable_scope("cost"):
             if self.params.cost == "unweighted":
                 xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
-                                                             logits=output)
+                                                             logits=logits)
             elif self.params.cost == 'f1':
-                return self._f1_cost(output, labels)
+                return self._f1_cost(tf.sigmoid(logits), labels)
 
             else:
                 # weighted cross-entropy
                 xS = tf.nn.weighted_cross_entropy_with_logits(targets=labels,
-                                                              logits=output,
+                                                              logits=logits,
                                                               pos_weight=self.params.positive_weight)
 
             cost = tf.reduce_mean(xS)
             return cost
 
-    def _f1_cost(self, output, labels):
-        tp = tf.reduce_sum(tf.cast(labels * output, tf.float32), axis=0)
-        tn = tf.reduce_sum(tf.cast((1 - labels) * (1 - output), tf.float32), axis=0)
-        fp = tf.reduce_sum(tf.cast((1 - labels) * output, tf.float32), axis=0)
-        fn = tf.reduce_sum(tf.cast(labels * (1 - output), tf.float32), axis=0)
+    def _f1_cost(self, y_prob, y_true):
+        tp = tf.reduce_sum(y_true * y_prob, axis=0)
+        tn = tf.reduce_sum((1 - y_true) * (1 - y_prob), axis=0)
+        fp = tf.reduce_sum((1 - y_true) * y_prob, axis=0)
+        fn = tf.reduce_sum(y_true * (1 - y_prob), axis=0)
 
         p = tp / (tp + fp + tf.keras.backend.epsilon())
         r = tp / (tp + fn + tf.keras.backend.epsilon())
