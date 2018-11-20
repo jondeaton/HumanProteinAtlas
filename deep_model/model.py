@@ -97,9 +97,9 @@ class HPA_CNN_Model(object):
         """
         with tf.variable_scope(name):
             conv1 = self._conv_block(input, is_training, num_filters=num_filters, name='conv1')
-            conv2 = self._conv_block(conv1, is_training, num_filters=num_filters, name='conv2')
+            # conv2 = self._conv_block(conv1, is_training, num_filters=num_filters, name='conv2')
 
-            max_pool = tf.layers.max_pooling2d(conv2,
+            max_pool = tf.layers.max_pooling2d(conv1,
                                                pool_size=(2,2), strides=2,
                                                data_format='channels_first', name='max_pool')
             return max_pool
