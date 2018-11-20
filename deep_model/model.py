@@ -61,6 +61,9 @@ class HPA_CNN_Model(object):
             if self.params.cost == "unweighted":
                 xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
                                                              logits=output)
+            elif self.params.cost == 'f1':
+                return self._f1_cost(output, labels)
+
             else:
                 # weighted cross-entropy
                 xS = tf.nn.weighted_cross_entropy_with_logits(targets=labels,
@@ -69,6 +72,20 @@ class HPA_CNN_Model(object):
 
             cost = tf.reduce_mean(xS)
             return cost
+
+    def _f1_cost(self, output, labels):
+        y_pred = tf.round(output)
+        tp = tf.reduce_sum(tf.cast(labels * y_pred, tf.float32), axis=0)
+        tn = tf.reduce_sum(tf.cast((1 - labels) * (1 - y_pred), tf.float32), axis=0)
+        fp = tf.reduce_sum(tf.cast((1 - labels) * y_pred, tf.float32), axis=0)
+        fn = tf.reduce_sum(tf.cast(labels * (1 - y_pred), tf.float32), axis=0)
+
+        p = tp / (tp + fp + tf.keras.backend.epsilon())
+        r = tp / (tp + fn + tf.keras.backend.epsilon())
+
+        f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
+        f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
+        return 1 - tf.reduce_mean(f1)
 
     def _down_block(self, input, is_training, num_filters, name='down_level'):
         """ two convolutional blocks followed by a max-pooling layer

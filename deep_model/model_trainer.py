@@ -106,7 +106,22 @@ class ModelTrainer(object):
         correct_positive = tf.boolean_mask(correct, positive_mask)
         positive_accuracy = tf.reduce_mean(tf.cast(correct_positive, tf.float32))
 
+        def f1(y_true, output):
+            y_pred = tf.round(output)
+            tp = tf.reduce_sum(tf.cast(y_true * y_pred, tf.float32), axis=0)
+            tn = tf.reduce_sum(tf.cast((1 - y_true) * (1 - y_pred), tf.float32), axis=0)
+            fp = tf.reduce_sum(tf.cast((1 - y_true) * y_pred, tf.float32), axis=0)
+            fn = tf.reduce_sum(tf.cast(y_true * (1 - y_pred), tf.float32), axis=0)
+
+            p = tp / (tp + fp + tf.keras.backend.epsilon())
+            r = tp / (tp + fn + tf.keras.backend.epsilon())
+
+            f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
+            f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
+            return tf.reduce_sum(f1)
+        
         self.logging_metrics["cost"] = self.cost
+        self.logging_metrics["F1"] = f1(labels, output)
         self.logging_metrics["accuracy"] = accuracy
         self.logging_metrics["positive accuracy"] = positive_accuracy
 

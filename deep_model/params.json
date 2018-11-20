@@ -2,7 +2,7 @@
   "model_version": "CNN",
 
   "seed": 420,
-  "cost": "weighted",
+  "cost": "f1",
   "positive_weight": 5,
 
   "dropout": true,
