@@ -15,7 +15,7 @@
   "test_batch_size": 64,
   "mini_batch_size": 64,
 
-  "prefetch_buffer_size": 64,
-  "shuffle_buffer_size": 64,
+  "prefetch_buffer_size": 16,
+  "shuffle_buffer_size": 16,
   "augment": true
 }
