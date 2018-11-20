@@ -17,6 +17,8 @@ import tensorflow as tf
 import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
+from deep_model.model import HPA_CNN_Model
+from deep_model.model_trainer import ModelTrainer
 
 from HumanProteinAtlas import Dataset
 from partitions import Split
@@ -232,7 +234,12 @@ def main():
     logger.debug("Learning rate: %s" % params.learning_rate)
     logger.debug("Num epochs: %s" % params.epochs)
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
-    train(train_dataset, test_dataset)
+
+    model = HPA_CNN_Model(params)
+    model_trainer = ModelTrainer(model, config, params, logger)
+    model_trainer.train(train_dataset, test_dataset)
+
+    # train(train_dataset, test_dataset)
 
     logger.info("Exiting.")
 

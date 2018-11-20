@@ -46,6 +46,10 @@ class Params():
         return self.__dict__
 
     @property
+    def model_version(self):
+        return self.dict["model_version"]
+
+    @property
     def adam(self):
         return self.dict["adam"]
 
