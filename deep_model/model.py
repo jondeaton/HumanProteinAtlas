@@ -22,7 +22,7 @@ class HPA_CNN_Model(object):
 
         with tf.variable_scope("convolutional"):
             num_conv = 2
-            filter_count = [32, 16]
+            filter_count = [64, 32]
             for i in range(num_conv):
                 with tf.variable_scope("layer-%d" % i):
                     next_layer = self._down_block(layers[-1], is_training, filter_count[i])

@@ -69,9 +69,6 @@ class ModelTrainer(object):
 
             self.train_handle = self.sess.run(self.train_iterator.string_handle())
 
-            self.sess.run(self.test_iterator.initializer)
-            self.test_handle = self.sess.run(self.test_iterator.string_handle())
-
             self.saver = tf.train.Saver(save_relative_paths=True)
             self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
 
@@ -85,6 +82,9 @@ class ModelTrainer(object):
                         self._train_batch()
 
                         if self.batch % self.config.tensorboard_freq == 0:
+                            self.sess.run(self.test_iterator.initializer)
+                            self.test_handle = self.sess.run(self.test_iterator.string_handle())
+
                             self._report_batch()
                             self._log_tensorboard()
 

@@ -11,9 +11,9 @@
   "adam": true,
   "learning_rate": 0.0005,
   "learning_decay_rate": 0.9,
-  "epochs": 100,
-  "test_batch_size": 64,
-  "mini_batch_size": 64,
+  "epochs": 10,
+  "test_batch_size": 128,
+  "mini_batch_size": 16,
 
   "prefetch_buffer_size": 16,
   "shuffle_buffer_size": 16,
