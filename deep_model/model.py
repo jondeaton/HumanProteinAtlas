@@ -74,11 +74,11 @@ class HPA_CNN_Model(object):
             return cost
 
     def _f1_cost(self, output, labels):
-        y_pred = tf.round(output)
-        tp = tf.reduce_sum(tf.cast(labels * y_pred, tf.float32), axis=0)
-        tn = tf.reduce_sum(tf.cast((1 - labels) * (1 - y_pred), tf.float32), axis=0)
-        fp = tf.reduce_sum(tf.cast((1 - labels) * y_pred, tf.float32), axis=0)
-        fn = tf.reduce_sum(tf.cast(labels * (1 - y_pred), tf.float32), axis=0)
+
+        tp = tf.reduce_sum(tf.cast(labels * output, tf.float32), axis=0)
+        tn = tf.reduce_sum(tf.cast((1 - labels) * (1 - output), tf.float32), axis=0)
+        fp = tf.reduce_sum(tf.cast((1 - labels) * output, tf.float32), axis=0)
+        fn = tf.reduce_sum(tf.cast(labels * (1 - output), tf.float32), axis=0)
 
         p = tp / (tp + fp + tf.keras.backend.epsilon())
         r = tp / (tp + fn + tf.keras.backend.epsilon())

@@ -12,7 +12,7 @@
   "learning_rate": 0.0005,
   "learning_decay_rate": 0.9,
   "epochs": 10,
-  "test_batch_size": 128,
+  "test_batch_size": 32,
   "mini_batch_size": 16,
 
   "prefetch_buffer_size": 16,
