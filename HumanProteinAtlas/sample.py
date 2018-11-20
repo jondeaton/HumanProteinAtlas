@@ -111,7 +111,7 @@ class Sample:
         if color in self._images:
             return self._images[color]
 
-        img = self._load_image(color)
+        img = self._load_image(color) / 256
 
         if self._cache:
             self._images[color] = img
@@ -136,12 +136,12 @@ class Sample:
         import matplotlib.pyplot as plt
         if color is None:
             comb = np.ones(self.shape + (3,))
-            comb[:, :, 0] = self.red / 256
-            comb[:, :, 1] = self.green / 256
-            comb[:, :, 2] = self.blue / 256
+            comb[:, :, 0] = self.red
+            comb[:, :, 1] = self.green
+            comb[:, :, 2] = self.blue
 
-            comb[:, :, 0] += self.yellow / (2 * 256)
-            comb[:, :, 1] += self.yellow / (2 * 256)
+            comb[:, :, 0] += self.yellow
+            comb[:, :, 1] += self.yellow
 
             plt.imshow(comb)
             plt.title("Sample: %s (combined)" % self.id)
