@@ -81,11 +81,11 @@ class ModelTrainer(object):
                     try:
                         self._train_batch()
 
-                        self.sess.run(self.test_iterator.initializer)
-                        self.test_handle = self.sess.run(self.test_iterator.string_handle())
-
-                        self._report_batch()
                         if self.batch % self.config.tensorboard_freq == 0:
+                            self.sess.run(self.test_iterator.initializer)
+                            self.test_handle = self.sess.run(self.test_iterator.string_handle())
+
+                            self._report_batch()
                             self._log_tensorboard()
 
                         if self.batch % self.config.save_freq == 0:
@@ -105,14 +105,6 @@ class ModelTrainer(object):
         positive_mask = tf.equal(tf.round(labels), 1)
         correct_positive = tf.boolean_mask(correct, positive_mask)
         positive_accuracy = tf.reduce_mean(tf.cast(correct_positive, tf.float32))
-
-        # positive_correct = tf.equal(correct, tf.cast(labels, tf.bool))
-        # total_positive_correct = tf.reduce_sum(tf.cast(positive_correct, tf.float32))
-        # total_positive = tf.reduce_sum(tf.cast(labels, tf.float32))
-        #
-        # self.logging_metrics["total_positive_correct"] = total_positive_correct
-        # self.logging_metrics["total_positive"] = total_positive
-        # positive_accuracy = total_positive_correct / total_positive
 
         self.logging_metrics["cost"] = self.cost
         self.logging_metrics["accuracy"] = accuracy
