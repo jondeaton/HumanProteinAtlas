@@ -99,17 +99,24 @@ class ModelTrainer(object):
     def _define_logging_metrics(self, output, labels):
 
         predictions = tf.round(output)
-        correct_prediction = tf.equal(predictions, tf.round(labels))
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        correct = tf.equal(predictions, tf.round(labels))
+        accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
 
-        positive_correct = tf.equal(correct_prediction, tf.cast(labels, tf.bool))
-        total_positive_correct = tf.reduce_sum(tf.cast(positive_correct, tf.float32))
-        total_positive = tf.reduce_sum(tf.cast(labels, tf.float32))
-        positive_accuracy = total_positive_correct / total_positive
+        positive_mask = tf.equal(tf.round(labels), 1)
+        correct_positive = tf.boolean_mask(correct, positive_mask)
+        positive_accuracy = tf.reduce_mean(tf.cast(correct_positive, tf.float32))
 
-        self.logging_metrics["positive accuracy"] = positive_accuracy
-        self.logging_metrics["accuracy"] = accuracy
+        # positive_correct = tf.equal(correct, tf.cast(labels, tf.bool))
+        # total_positive_correct = tf.reduce_sum(tf.cast(positive_correct, tf.float32))
+        # total_positive = tf.reduce_sum(tf.cast(labels, tf.float32))
+        #
+        # self.logging_metrics["total_positive_correct"] = total_positive_correct
+        # self.logging_metrics["total_positive"] = total_positive
+        # positive_accuracy = total_positive_correct / total_positive
+
         self.logging_metrics["cost"] = self.cost
+        self.logging_metrics["accuracy"] = accuracy
+        self.logging_metrics["positive accuracy"] = positive_accuracy
 
     def _setup_dataset_iterators(self, train_dataset, test_dataset):
         # dataset iterators (for selecting dataset to feed in)
@@ -123,21 +130,23 @@ class ModelTrainer(object):
 
     def _configure_tensorboard(self):
 
-        # Configure TensorBoard training data
-        train_cost = tf.summary.scalar('train_cost', self.cost)
-        merged_summary_train = tf.summary.merge([train_cost])
-
-        # Configure TensorBoard test data
+        # Configure all of the metrics to log to TensorBoard
         metrics = list()
+
+        train_cost = tf.summary.scalar('train_cost', self.cost)
+        metrics.append(train_cost)
+
+        # Also add all of the logging metrics
         for metric_name in self.logging_metrics:
-            tensor = self.logging_metrics[metric_name]
-            metric_summary = tf.summary.scalar(metric_name, tensor)
+            metric_tensor = self.logging_metrics[metric_name]
+            metric_summary = tf.summary.scalar("train_%s" % metric_name, metric_tensor)
             metrics.append(metric_summary)
 
         self.merged_summary = tf.summary.merge(metrics)
-
         self.writer = tf.summary.FileWriter(logdir=self.tensorboard_dir)
-        self.writer.add_graph(self.sess.graph)  # Add the pretty graph viz
+
+        # Add the pretty graph viz
+        self.writer.add_graph(self.sess.graph)
 
     def _train_batch(self):
         feed_dict = {self.is_training: True,
