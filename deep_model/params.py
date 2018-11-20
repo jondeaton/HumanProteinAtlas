@@ -62,6 +62,10 @@ class Params():
         return self.dict["positive_weight"]
 
     @property
+    def batch_normalize(self):
+        return self.dict["batch-norm"]
+
+    @property
     def dropout(self):
         return self.dict["dropout"]
 

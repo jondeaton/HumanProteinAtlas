@@ -74,7 +74,6 @@ class HPA_CNN_Model(object):
             return cost
 
     def _f1_cost(self, output, labels):
-
         tp = tf.reduce_sum(tf.cast(labels * output, tf.float32), axis=0)
         tn = tf.reduce_sum(tf.cast((1 - labels) * (1 - output), tf.float32), axis=0)
         fp = tf.reduce_sum(tf.cast((1 - labels) * output, tf.float32), axis=0)
@@ -125,13 +124,17 @@ class HPA_CNN_Model(object):
                                     kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)
 
             # Batch normalization before activation
-            bn = tf.layers.batch_normalization(conv,
+            if self.params.batch_normalize:
+                bn = tf.layers.batch_normalization(conv,
                                                axis=1, momentum=0.9,
                                                epsilon=0.001, center=True, scale=True,
                                                training=is_training, name='bn')
 
-            # Activation after batch normalization
-            act = tf.nn.relu(bn, name="bn-relu")
+                # Activation after batch normalization
+                act = tf.nn.relu(bn, name="bn-relu")
+            else:
+                act = tf.nn.relu(conv, name="conv-relu")
+
             tf.summary.histogram('activations', act)
             tf.summary.scalar('sparsity', tf.nn.zero_fraction(act))
             return act
