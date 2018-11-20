@@ -16,17 +16,16 @@ class HPA_CNN_Model(object):
         self.params = params
 
     def __call__(self, input, labels, is_training):
-        num_conv = 2
-        num_dense = 2
 
         layers = list()
         layers.append(input)
 
         with tf.variable_scope("convolutional"):
+            num_conv = 2
+            filter_count = [64, 32]
             for i in range(num_conv):
                 with tf.variable_scope("layer-%d" % i):
-                    num_filters = 8 * 2 ** i
-                    next_layer = self._down_block(layers[-1], is_training, num_filters)
+                    next_layer = self._down_block(layers[-1], is_training, filter_count[i])
                     layers.append(next_layer)
 
         last_conv_layer = layers[-1]
@@ -34,11 +33,12 @@ class HPA_CNN_Model(object):
         reshaped = tf.reshape(layers[-1], [-1,] + [new_shape])
         layers.append(reshaped)
 
+        num_dense = 1
         with tf.variable_scope("dense"):
+            sizes = [64]
             for i in range(num_dense):
                 with tf.variable_scope("layer-%d" % i):
-                    size = 256 / (2 ** i)
-                    next_layer = tf.layers.dense(layers[-1], size, activation='relu')
+                    next_layer = tf.layers.dense(layers[-1], sizes[i], activation='relu')
                     layers.append(next_layer)
 
                     if self.params is not None and self.params.dropout:
