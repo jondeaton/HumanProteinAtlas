@@ -109,10 +109,11 @@ class ModelTrainer(object):
         positive_accuracy = tf.reduce_mean(tf.cast(correct_positive, tf.float32))
 
         def f1(y_true, y_pred):
-            tp = tf.reduce_sum(y_true * tf.cast(y_pred, tf.float32), axis=0)
-            tn = tf.reduce_sum((1 - y_true) * tf.cast((1 - y_pred), tf.float32), axis=0)
-            fp = tf.reduce_sum((1 - y_true) * tf.cast(y_pred, tf.float32), axis=0)
-            fn = tf.reduce_sum(y_true * tf.cast((1 - y_pred), tf.float32), axis=0)
+            y_pred = tf.cast(y_pred, tf.float32)
+            tp = tf.reduce_sum(y_true * y_pred, axis=0)
+            tn = tf.reduce_sum((1 - y_true) * (1 - y_pred), axis=0)
+            fp = tf.reduce_sum((1 - y_true) * y_pred, axis=0)
+            fn = tf.reduce_sum(y_true * (1 - y_pred), axis=0)
 
             p = tp / (tp + fp + tf.keras.backend.epsilon())
             r = tp / (tp + fn + tf.keras.backend.epsilon())
@@ -147,8 +148,6 @@ class ModelTrainer(object):
         # Also add all of the logging metrics
         for metric_name in self.logging_metrics:
             metric_tensor = self.logging_metrics[metric_name]
-            if metric_tensor.shape == []:
-                continue
             metric_summary = tf.summary.scalar("train_%s" % metric_name, metric_tensor)
             metrics.append(metric_summary)
 

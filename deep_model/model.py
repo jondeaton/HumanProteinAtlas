@@ -50,11 +50,11 @@ class HPA_CNN_Model(object):
         last_dense_layer = layers[-1]
         n_logits = len(Organelle)
 
-        with tf.variable_scope("softmax"):
+        with tf.variable_scope("output"):
             logits = tf.layers.dense(last_dense_layer, n_logits, name="logits")
-            outputs = tf.sigmoid(logits)
+            output = tf.sigmoid(logits, name="probabilities")
 
-        return outputs, logits, self._cost(logits, labels)
+        return output, logits, self._cost(logits, labels)
 
     def _cost(self, logits, labels):
         with tf.variable_scope("cost"):
