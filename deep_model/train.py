@@ -120,14 +120,12 @@ def train(train_dataset, test_dataset):
                                                     feed_dict={is_training: False,
                                                                 dataset_handle: test_handle})
 
-                        acc = sess.run(accuracy, feed_dict={is_training: False,
+                        acc, pos_acc, f1_score = sess.run([accuracy, positive_accuracy, f1_metric],
+                                                          feed_dict={is_training: False,
                                                             dataset_handle: test_handle})
 
-                        pos_acc = sess.run(positive_accuracy,
-                                           feed_dict={is_training: False,
-                                                      dataset_handle: test_handle})
 
-                        logger.info("Test accuracy: %s, Positive Accuracy: %s" % (acc, pos_acc))
+                        logger.info("Test accuracy: %s, Positive Accuracy: %s, F1" % (acc, pos_acc, f1_score))
                         writer.add_summary(test_summary, global_step=sess.run(global_step))
 
                     if batch % config.save_freq == 0:
