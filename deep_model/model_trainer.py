@@ -110,6 +110,8 @@ class ModelTrainer(object):
 
         def f1(y_true, y_pred):
             y_pred = tf.cast(y_pred, tf.float32)
+            y_pred = tf.sigmoid(y_pred)
+
             tp = tf.reduce_sum(y_true * y_pred, axis=0)
             tn = tf.reduce_sum((1 - y_true) * (1 - y_pred), axis=0)
             fp = tf.reduce_sum((1 - y_true) * y_pred, axis=0)

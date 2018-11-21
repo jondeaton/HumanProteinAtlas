@@ -7,5 +7,5 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 
 
 def preprocess_dataset(dataset):
-    # currently no universal preprocessing is necessary
+    # currently no universal pre-processing is necessary
     return dataset

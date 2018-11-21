@@ -125,7 +125,7 @@ def train(train_dataset, test_dataset):
                                                             dataset_handle: test_handle})
 
 
-                        logger.info("Test accuracy: %s, Positive Accuracy: %s, F1" % (acc, pos_acc, f1_score))
+                        logger.info("Test accuracy: %s, Positive Accuracy: %s, F1 %s" % (acc, pos_acc, f1_score))
                         writer.add_summary(test_summary, global_step=sess.run(global_step))
 
                     if batch % config.save_freq == 0:
@@ -144,24 +144,27 @@ def train(train_dataset, test_dataset):
 
 
 def create_data_pipeline(human_protein_atlas):
+    assert isinstance(human_protein_atlas, Dataset)
+
     datasets = [load_dataset(human_protein_atlas, split)
                 for split in (Split.train, Split.test, Split.validation)]
 
+    # any pre-processing to be done on all data sets
     for i, dataset in enumerate(datasets):
         datasets[i] = preprocess_dataset(datasets[i])
 
     train_dataset, test_dataset, validation_dataset = datasets
 
-    # Dataset augmentation
+    # Optional Training Dataset augmentation
     if params.augment:
         train_dataset = augment_dataset(train_dataset)
 
-    # Shuffle, repeat, batch, prefetch the training dataset
+    # Shuffle, batch, prefetch the training data set
     train_dataset = train_dataset.shuffle(params.shuffle_buffer_size)
     train_dataset = train_dataset.batch(params.mini_batch_size)
     train_dataset = train_dataset.prefetch(buffer_size=params.prefetch_buffer_size)
 
-    # Shuffle/batch test dataset
+    # Shuffle/batch test data set
     test_dataset = test_dataset.shuffle(params.shuffle_buffer_size)
     test_dataset = test_dataset.batch(params.test_batch_size)
 
@@ -181,6 +184,7 @@ def f1(y_true, y_pred):
     f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
     f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
     return tf.reduce_sum(f1)
+
 
 def _get_optimizer(cost, global_step):
     if params.adam:
@@ -228,7 +232,6 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
 
     human_protein_atlas = Dataset(config.dataset_directory)
-
     train_dataset, test_dataset, _ = create_data_pipeline(human_protein_atlas)
 
     logger.info("Initiating training...")
