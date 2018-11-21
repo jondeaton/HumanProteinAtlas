@@ -43,30 +43,20 @@ def train(train_dataset, test_dataset):
 
     # Create the model's computation graph and cost function
     logger.info("Instantiating model...")
-    output, is_training = deep_model.model(input, labels, params=params)
+    is_training = tf.placeholder(tf.bool)
+    model = HPA_CNN_Model(params)
+    output, logits, cost = model(input, labels, is_training)
     output = tf.identity(output, "output")
 
-    # Cost function
-    with tf.variable_scope("cost"):
-        if params.cost == "unweighted":
-            xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
-                                                         logits=output)
-        else:
-            # weighted cross-entropy
-            xS = tf.nn.weighted_cross_entropy_with_logits(targets=labels,
-                                                          logits=output,
-                                                          pos_weight=params.positive_weight)
-
-        cost = tf.reduce_mean(xS)
-
-    logits = tf.sigmoid(output)
-    correct_prediction = tf.equal(tf.round(logits), tf.round(labels))
+    correct_prediction = tf.equal(tf.round(output), tf.round(labels))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     positive_correct = tf.equal(correct_prediction, tf.cast(labels, tf.bool))
     total_positive_correct = tf.reduce_sum(tf.cast(positive_correct, tf.float32))
     total_positive = tf.reduce_sum(tf.cast(labels, tf.float32))
     positive_accuracy = total_positive_correct / total_positive
+
+    f1_metric = f1(labels, tf.round(output))
 
     # Define the optimization strategy
     global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -84,6 +74,7 @@ def train(train_dataset, test_dataset):
         merged_summary_train = tf.summary.merge([train_cost])
 
         # Configure TensorBoard test data
+        test_f1 = tf.summary.scalar('test_f1', f1_metric)
         test_cost = tf.summary.scalar('test_cost', cost)
         test_accuracy = tf.summary.scalar('test_accuracy', accuracy)
         test_pos_accuracy = tf.summary.scalar('test_positive_accuracy', positive_accuracy)
@@ -179,6 +170,20 @@ def create_data_pipeline(human_protein_atlas):
     return train_dataset, test_dataset, validation_dataset
 
 
+def f1(y_true, y_pred):
+    y_pred = tf.cast(y_pred, tf.float32)
+    tp = tf.reduce_sum(y_true * y_pred, axis=0)
+    tn = tf.reduce_sum((1 - y_true) * (1 - y_pred), axis=0)
+    fp = tf.reduce_sum((1 - y_true) * y_pred, axis=0)
+    fn = tf.reduce_sum(y_true * (1 - y_pred), axis=0)
+
+    p = tp / (tp + fp + tf.keras.backend.epsilon())
+    r = tp / (tp + fn + tf.keras.backend.epsilon())
+
+    f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
+    f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
+    return tf.reduce_sum(f1)
+
 def _get_optimizer(cost, global_step):
     if params.adam:
         # With Adam optimization: no learning rate decay
@@ -235,11 +240,11 @@ def main():
     logger.debug("Num epochs: %s" % params.epochs)
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
-    model = HPA_CNN_Model(params)
-    model_trainer = ModelTrainer(model, config, params, logger)
-    model_trainer.train(train_dataset, test_dataset)
+    # model = HPA_CNN_Model(params)
+    # model_trainer = ModelTrainer(model, config, params, logger)
+    # model_trainer.train(train_dataset, test_dataset)
 
-    # train(train_dataset, test_dataset)
+    train(train_dataset, test_dataset)
 
     logger.info("Exiting.")
 
