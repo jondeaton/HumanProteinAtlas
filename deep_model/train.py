@@ -17,7 +17,7 @@ import tensorflow as tf
 import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
-from deep_model.model import HPA_CNN_Model
+from deep_model.model import HPA_CNN_Model, FourChannel_Kaggle
 from deep_model.model_trainer import ModelTrainer
 
 from HumanProteinAtlas import Dataset
@@ -242,10 +242,11 @@ def main():
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
     # model = HPA_CNN_Model(params)
-    # model_trainer = ModelTrainer(model, config, params, logger)
-    # model_trainer.train(train_dataset, test_dataset)
+    model = FourChannel_Kaggle(params)
+    model_trainer = ModelTrainer(model, config, params, logger)
+    model_trainer.train(train_dataset, test_dataset)
 
-    train(train_dataset, test_dataset)
+    # train(train_dataset, test_dataset)
 
     logger.info("Exiting.")
 

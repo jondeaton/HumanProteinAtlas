@@ -7,7 +7,10 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 
 import tensorflow as tf
 import numpy as np
+
+
 from HumanProteinAtlas import Organelle
+from deep_model.ops import *
 
 
 class HPA_CNN_Model(object):
@@ -62,7 +65,7 @@ class HPA_CNN_Model(object):
                 xS = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
                                                              logits=logits)
             elif self.params.cost == 'f1':
-                return self._f1_cost(tf.sigmoid(logits), labels)
+                return f1_cost(tf.sigmoid(logits), labels)
 
             else:
                 # weighted cross-entropy
@@ -72,19 +75,6 @@ class HPA_CNN_Model(object):
 
             cost = tf.reduce_mean(xS)
             return cost
-
-    def _f1_cost(self, y_prob, y_true):
-        tp = tf.reduce_sum(y_true * y_prob, axis=0)
-        tn = tf.reduce_sum((1 - y_true) * (1 - y_prob), axis=0)
-        fp = tf.reduce_sum((1 - y_true) * y_prob, axis=0)
-        fn = tf.reduce_sum(y_true * (1 - y_prob), axis=0)
-
-        p = tp / (tp + fp + tf.keras.backend.epsilon())
-        r = tp / (tp + fn + tf.keras.backend.epsilon())
-
-        f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
-        f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
-        return 1 - tf.reduce_mean(f1)
 
     def _down_block(self, input, is_training, num_filters, name='down_level'):
         """ two convolutional blocks followed by a max-pooling layer
@@ -103,7 +93,6 @@ class HPA_CNN_Model(object):
                                                pool_size=(2,2), strides=2,
                                                data_format='channels_first', name='max_pool')
             return max_pool
-
 
     def _conv_block(self, input, is_training, num_filters, name='conv'):
         """ Convolution and batch normalization layer
@@ -138,3 +127,53 @@ class HPA_CNN_Model(object):
             tf.summary.histogram('activations', act)
             tf.summary.scalar('sparsity', tf.nn.zero_fraction(act))
             return act
+
+class FourChannel_Kaggle(object):
+    def __init__(self, params):
+        self.params = params
+
+    def __call__(self, input, labels, is_training):
+
+        def BatchNormalization(input):
+            return tf.layers.batch_normalization(input, axis=-1, training=is_training)
+
+        def batch_conv_relu(input, filters):
+            x = BatchNormalization(input)
+            return conv_relu(x, filters, (3, 3))
+
+        def batch_pool_drop_conv_relu(input, filters):
+            x = BatchNormalization(input)
+            x = MaxPooling2D(x)
+            x = tf.layers.dropout(x, rate=self.params.dropout_rate, training=is_training)
+            return conv_relu(x, filters, (3, 3))
+
+        l = batch_conv_relu(input, 8)
+        l = batch_conv_relu(l, 8)
+        l = batch_conv_relu(l, 16)
+
+        l = BatchNormalization(l)
+        l = MaxPooling2D(l)
+
+        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+
+        l = conv_concat(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
+        l = BatchNormalization(l)
+
+        l = batch_pool_drop_conv_relu(l, 32)
+        l = batch_pool_drop_conv_relu(l, 64)
+        l = batch_pool_drop_conv_relu(l, 128)
+
+        l = BatchNormalization(l)
+        l = MaxPooling2D(l)
+        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+
+        l = tf.layers.flatten(l)
+        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        l = tf.layers.dense(l, len(Organelle), activation='relu')
+
+        l = BatchNormalization(l)
+        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        logits = tf.layers.dense(l, len(Organelle), activation=None)
+        y_prob = tf.sigmoid(logits)
+
+        return y_prob, logits, f1_cost(y_prob, labels)

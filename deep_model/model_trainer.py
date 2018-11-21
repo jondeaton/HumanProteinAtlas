@@ -17,6 +17,7 @@ import tensorflow as tf
 import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
+from deep_model.ops import f1
 
 from HumanProteinAtlas import Dataset
 from partitions import Split
@@ -107,21 +108,6 @@ class ModelTrainer(object):
         positive_mask = tf.equal(tf.round(labels), 1)
         correct_positive = tf.boolean_mask(correct, positive_mask)
         positive_accuracy = tf.reduce_mean(tf.cast(correct_positive, tf.float32))
-
-        def f1(y_true, y_pred):
-            y_pred = tf.cast(y_pred, tf.float32)
-
-            tp = tf.reduce_sum(y_true * y_pred, axis=0)
-            tn = tf.reduce_sum((1 - y_true) * (1 - y_pred), axis=0)
-            fp = tf.reduce_sum((1 - y_true) * y_pred, axis=0)
-            fn = tf.reduce_sum(y_true * (1 - y_pred), axis=0)
-
-            p = tp / (tp + fp + tf.keras.backend.epsilon())
-            r = tp / (tp + fn + tf.keras.backend.epsilon())
-
-            f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
-            f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
-            return tf.reduce_mean(f1)
 
         self.logging_metrics["cost"] = self.cost
         self.logging_metrics["F1"] = f1(labels, predictions)
