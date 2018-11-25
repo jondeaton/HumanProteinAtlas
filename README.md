@@ -10,7 +10,10 @@ To train deep model
 
 evaluate the deep model
 
-    python -m deep_model.evaluate
+    python -m deep_model.evaluate \
+        --save-path /path/to/model_outputs \
+        --model model_checkpoint-0.meta \
+        --output outputs
 
 To create training, test, and validation sets (this has already been done and should not need to
 be done again)

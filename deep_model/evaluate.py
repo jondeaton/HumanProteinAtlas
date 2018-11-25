@@ -10,13 +10,16 @@ import sys
 import logging
 import argparse
 
+import numpy as np
 import tensorflow as tf
 
 import HumanProteinAtlas
 from deep_model.config import Configuration
 from partitions import partitions, Split
 
-import evaluation
+
+from evaluation import metrics
+from HumanProteinAtlas import Organelle
 
 
 def multi_hot_to_list(multi_hot, threshold=0.5):
@@ -29,12 +32,26 @@ def multi_hot_to_list(multi_hot, threshold=0.5):
 def evaluate_on(run_model, test_ids, output_dir):
     dataset = HumanProteinAtlas.Dataset(config.dataset_directory)
 
-    for id in test_ids:
-        sample = dataset.sample(id)
-        prediction = run_model(sample.multi_channel)
-        pred_labels = multi_hot_to_list(prediction)
-        print("%s:\t real: %s \t prediction: %s" % (sample.id, sample.labels, pred_labels))
+    # m = len(test_ids)
+    m = 32
+    true_labels = np.empty((m, len(Organelle)))
+    probabilities = np.empty((m, len(Organelle)))
 
+    for i, id in enumerate(test_ids):
+        if i == m: break
+
+        sample = dataset.sample(id)
+
+        img = np.expand_dims(sample.multi_channel, axis=0)
+        probabilities[i, :] = run_model(img)
+
+        if i % 100 == 0:
+            logger.info("Done with %d samples." % i)
+
+        true_labels[i, :] = sample.multi_hot_label
+
+    output_file = os.path.join(output_dir, "metrics.txt")
+    metrics.evaluation_metrics(true_labels, probabilities, output_file=output_file)
 
 def evaluate(run_model, output_dir):
 
@@ -65,7 +82,7 @@ def restore_and_evaluate(save_path, model_file, output_dir):
         graph = tf.get_default_graph()
 
         input = graph.get_tensor_by_name("input:0")
-        output = graph.get_tensor_by_name("Sigmoid:0")
+        output = graph.get_tensor_by_name("output:0")
         is_training = graph.get_tensor_by_name("Placeholder_1:0")
 
         def run_model(sample):

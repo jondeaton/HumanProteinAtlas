@@ -56,6 +56,9 @@ class Dataset:
         self._shape = (m,) + sample_shape
         return self._shape
 
+    def __len__(self):
+        return len(self.sample_labels)
+
     @property
     def num_samples(self):
         return len(self.sample_ids)

@@ -118,7 +118,7 @@ class Sample:
         return img
 
     @property
-    def one_hot_label(self):
+    def multi_hot_label(self):
         if self._one_hot_labels is None:
             a = np.array(self.labels)
             b = np.zeros((a.size, len(Organelle)))

@@ -25,7 +25,7 @@ def load_dataset(dataset, split):
         for sample_id in partitions[split]:
             sample = dataset.sample(sample_id)
             assert isinstance(sample, Sample)
-            yield sample.multi_channel, sample.one_hot_label
+            yield sample.multi_channel, sample.multi_hot_label
 
     sample_shape_shape = dataset.shape[1:]
     label_shape = (len(Organelle),)
