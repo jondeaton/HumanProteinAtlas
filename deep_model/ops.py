@@ -9,42 +9,45 @@ import tensorflow as tf
 
 
 def f1(y_true, y_pred):
-    y_pred = tf.cast(y_pred, tf.float32)
+    with tf.variable_scope("macro-f1-score"):
+        y_pred = tf.cast(y_pred, tf.float32)
 
-    tp = tf.reduce_sum(y_true * y_pred, axis=0)
-    tn = tf.reduce_sum((1 - y_true) * (1 - y_pred), axis=0)
-    fp = tf.reduce_sum((1 - y_true) * y_pred, axis=0)
-    fn = tf.reduce_sum(y_true * (1 - y_pred), axis=0)
+        tp = tf.reduce_sum(y_true * y_pred, axis=0)
+        tn = tf.reduce_sum((1 - y_true) * (1 - y_pred), axis=0)
+        fp = tf.reduce_sum((1 - y_true) * y_pred, axis=0)
+        fn = tf.reduce_sum(y_true * (1 - y_pred), axis=0)
 
-    p = tp / (tp + fp + tf.keras.backend.epsilon())
-    r = tp / (tp + fn + tf.keras.backend.epsilon())
+        p = tp / (tp + fp + tf.keras.backend.epsilon())
+        r = tp / (tp + fn + tf.keras.backend.epsilon())
 
-    f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
-    f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
-    return tf.reduce_mean(f1)
+        f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
+        f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
+        return tf.reduce_mean(f1)
 
 
 def f1_cost(y_prob, y_true):
-    tp = tf.reduce_sum(y_true * y_prob, axis=0)
-    tn = tf.reduce_sum((1 - y_true) * (1 - y_prob), axis=0)
-    fp = tf.reduce_sum((1 - y_true) * y_prob, axis=0)
-    fn = tf.reduce_sum(y_true * (1 - y_prob), axis=0)
+    with tf.variable_scope("macro-f1-loss"):
+        tp = tf.reduce_sum(y_true * y_prob, axis=0)
+        tn = tf.reduce_sum((1 - y_true) * (1 - y_prob), axis=0)
+        fp = tf.reduce_sum((1 - y_true) * y_prob, axis=0)
+        fn = tf.reduce_sum(y_true * (1 - y_prob), axis=0)
 
-    p = tp / (tp + fp + tf.keras.backend.epsilon())
-    r = tp / (tp + fn + tf.keras.backend.epsilon())
+        p = tp / (tp + fp + tf.keras.backend.epsilon())
+        r = tp / (tp + fn + tf.keras.backend.epsilon())
 
-    f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
-    f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
-    return 1 - tf.reduce_mean(f1)
+        f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
+        f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
+        return 1 - tf.reduce_mean(f1)
 
 
-def conv_concat(input, filters, kernels):
-    l = input
-    convs = list()
-    for kernel in kernels:
-        l = conv_relu(l, filters, kernel)
-        convs.append(l)
-    return tf.concat(values=convs, axis=1, name="concat")
+def inception_module(input, filters, kernels):
+    with tf.variable_scope("inception"):
+        l = input
+        convs = list()
+        for kernel in kernels:
+            l = conv_relu(l, filters, kernel)
+            convs.append(l)
+        return tf.concat(values=convs, axis=1, name="concat")
 
 
 def conv_relu(input, filters, kernel):

@@ -45,7 +45,7 @@ class ModelTrainer(object):
         self._setup_dataset_iterators(train_dataset, test_dataset)
 
         input, labels = self.iterator.get_next()
-        input = tf.identity(input, "input")
+        input = tf.identity(input, "input") # name the input tensor
 
         # Create the model's computation graph and cost function
         self.logger.info("Instantiating model...")
@@ -135,7 +135,7 @@ class ModelTrainer(object):
         # Also add all of the logging metrics
         for metric_name in self.logging_metrics:
             metric_tensor = self.logging_metrics[metric_name]
-            metric_summary = tf.summary.scalar("train_%s" % metric_name, metric_tensor)
+            metric_summary = tf.summary.scalar("test_%s" % metric_name, metric_tensor)
             metrics.append(metric_summary)
 
         self.merged_summary = tf.summary.merge(metrics)
@@ -156,7 +156,6 @@ class ModelTrainer(object):
         self.batch += 1
 
     def _report_batch(self):
-
         for metric_name in self.logging_metrics:
             tensor = self.logging_metrics[metric_name]
             value = self.sess.run(tensor, feed_dict={self.is_training: False,

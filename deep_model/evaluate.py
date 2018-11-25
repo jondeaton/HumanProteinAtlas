@@ -18,6 +18,7 @@ from partitions import partitions, Split
 
 import evaluation
 
+
 def multi_hot_to_list(multi_hot, threshold=0.5):
     l = list()
     for i in range(len(multi_hot)):
@@ -64,7 +65,7 @@ def restore_and_evaluate(save_path, model_file, output_dir):
         graph = tf.get_default_graph()
 
         input = graph.get_tensor_by_name("input:0")
-        output = graph.get_tensor_by_name("output_1:0")
+        output = graph.get_tensor_by_name("Sigmoid:0")
         is_training = graph.get_tensor_by_name("Placeholder_1:0")
 
         def run_model(sample):
@@ -102,10 +103,6 @@ def main():
 
 
 def parse_args():
-    """
-    Parse the command line options for this file
-    :return: An argparse object containing parsed arguments
-    """
     parser = argparse.ArgumentParser(description="Evaluate the human protein atlas model",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

@@ -5,15 +5,15 @@ Date: 10/19/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 
 from HumanProteinAtlas import Organelle
 from deep_model.ops import *
 
 
-class HPA_CNN_Model(object):
+class BaselineModel(object):
 
     def __init__(self, params):
         self.params = params
@@ -115,7 +115,7 @@ class HPA_CNN_Model(object):
             # Batch normalization before activation
             if self.params.batch_normalize:
                 bn = tf.layers.batch_normalization(conv,
-                                               axis=1, momentum=0.9,
+                                               axis=-1, momentum=0.9,
                                                epsilon=0.001, center=True, scale=True,
                                                training=is_training, name='bn')
 
@@ -128,7 +128,8 @@ class HPA_CNN_Model(object):
             tf.summary.scalar('sparsity', tf.nn.zero_fraction(act))
             return act
 
-class FourChannel_Kaggle(object):
+
+class InceptionBased(object):
     def __init__(self, params):
         self.params = params
 
@@ -156,7 +157,7 @@ class FourChannel_Kaggle(object):
 
         l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
 
-        l = conv_concat(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
+        l = inception_module(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
         l = BatchNormalization(l)
 
         l = batch_pool_drop_conv_relu(l, 32)
