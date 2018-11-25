@@ -1,0 +1,4 @@
+F1-macro score: 0.65
+Hamming loss: 0.5
+Average precision score: 0.6666666666666666
+Coverage error: 2.0
