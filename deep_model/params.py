@@ -46,6 +46,10 @@ class Params():
         return self.__dict__
 
     @property
+    def model_version(self):
+        return self.dict["model_version"]
+
+    @property
     def adam(self):
         return self.dict["adam"]
 
@@ -56,6 +60,10 @@ class Params():
     @property
     def positive_weight(self):
         return self.dict["positive_weight"]
+
+    @property
+    def batch_normalize(self):
+        return self.dict["batch-norm"]
 
     @property
     def dropout(self):
