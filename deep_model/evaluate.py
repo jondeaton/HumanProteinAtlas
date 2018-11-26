@@ -21,6 +21,8 @@ from partitions import partitions, Split
 from evaluation import metrics
 from HumanProteinAtlas import Organelle
 
+# Solves OpenMP multiple installation problem
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 def multi_hot_to_list(multi_hot, threshold=0.5):
     l = list()
@@ -29,22 +31,24 @@ def multi_hot_to_list(multi_hot, threshold=0.5):
             l.append(i)
     return l
 
-def evaluate_on(run_model, test_ids, output_dir):
+
+def evaluate_on(run_model, test_ids, output_dir, batch_size=64):
     dataset = HumanProteinAtlas.Dataset(config.dataset_directory)
 
     m = len(test_ids)
     true_labels = np.empty((m, len(Organelle)))
     probabilities = np.empty((m, len(Organelle)))
 
-    batch = np.empty((16, len(Organelle)))
+    image_shape = dataset.shape[1:]
+    batch = np.empty((batch_size,) + image_shape)
 
     for i, id in enumerate(test_ids):
-        if i == m: break
-
         sample = dataset.sample(id)
+        batch[i % batch_size, :] = sample.multi_channel
 
-        img = np.expand_dims(sample.multi_channel, axis=0)
-        probabilities[i, :] = run_model(img)
+        if i % batch_size == batch_size - 1:
+            batch_predictions = run_model(batch)
+            probabilities[i - batch_size + 1:i + 1, :] = batch_predictions
 
         if i % 100 == 0:
             logger.info("Done with %d samples." % i)
@@ -54,20 +58,17 @@ def evaluate_on(run_model, test_ids, output_dir):
     output_file = os.path.join(output_dir, "metrics.txt")
     metrics.evaluation_metrics(true_labels, probabilities, output_file=output_file)
 
+
 def evaluate(run_model, output_dir):
 
-    train_ids = partitions[Split.train]
-    test_ids = partitions[Split.test]
-    validation_ids = partitions[Split.validation]
-
     logger.info("Evaluating test data...")
-    evaluate_on(run_model, test_ids, output_dir)
+    evaluate_on(run_model, partitions.test, output_dir)
 
     logger.info("Evaluating validation data...")
-    evaluate_on(run_model, validation_ids, output_dir)
+    evaluate_on(run_model, partitions.validation, output_dir)
 
     logger.info("Evaluating training data...")
-    evaluate_on(run_model, train_ids, output_dir)
+    evaluate_on(run_model, partitions.train, output_dir)
 
 
 def restore_and_evaluate(save_path, model_file, output_dir):
