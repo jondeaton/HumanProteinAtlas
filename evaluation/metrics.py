@@ -7,6 +7,7 @@ Author: Robert Neff (rneff@stanford.edu)
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from matplotlib.ticker import MaxNLocator
 from sklearn import metrics
 
@@ -111,6 +112,33 @@ def plot_num_each_protein(labels, pred_labels):
     plt.xlabel("Protein")
     plt.ylabel("Label count")
     fig.savefig("outputs/proteins_label_counts.png")
+
+
+def plot_histogram(counts_matrix, x_tick_labels, legend_labels, title, xlabel, ylabel, outfile):
+    m, n = counts_matrix.shape
+    assert len(x_tick_labels) == n
+
+    count_range = np.arange(n)
+
+    width = 0.3
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    # Text below each barplot
+    plt.xticks([x + width / m  for x in count_range], x_tick_labels, rotation=90)
+
+    colors = cm.rainbow(np.linspace(0, 1, m))
+
+    # Each bar type
+    for i in range(m):
+        ax.bar(count_range + i * width, counts_matrix[i], width=width, color=colors[i], label=legend_labels[i])
+
+    plt.legend()
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.show()
+    fig.savefig(outfile)
 
 
 def print_and_write_line(file, str):
