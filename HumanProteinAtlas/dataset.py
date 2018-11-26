@@ -76,6 +76,9 @@ class Dataset:
             self._samples[sample_id] = s
         return s
 
+    def __getitem__(self, sample_id):
+        return self.sample(sample_id)
+
     def __iter__(self):
         return self
 

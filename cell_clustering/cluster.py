@@ -22,6 +22,9 @@ from preprocessing import preprocess_dataset
 from deep_model.config import Configuration
 
 import cell_clustering
+from feature_extraction import extract_features
+
+import pickle
 
 
 class ClusteringMethod(Enum):
@@ -30,90 +33,22 @@ class ClusteringMethod(Enum):
     gmm = 2
 
 
-def load_dataset(dataset, split):
-    assert isinstance(dataset, Dataset)
-    assert isinstance(split, Split)
-
-    sample_data =  []
-    sample_ids = []
-    for sample_id in partitions[split]:
-        sample = dataset.sample(sample_id)
-        assert isinstance(sample, Sample)
-        sample_data.append(sample.multi_channel.flatten())
-        sample_ids.append(sample_id)
-
-    return [np.array(sample_data), sample_ids]
+def train_gmm(X, n_cluster):
+    gmm = GaussianMixture(n_components=n_cluster)
+    gmm.fit(X)
+    return gmm
 
 
-def create_data_pipeline(human_protein_atlas):
-    datasets = [load_dataset(human_protein_atlas, split)
-                for split in (Split.train, Split.test)]
+def assign_samples(human_protein_atlas, ids, model):
+    assert isinstance(human_protein_atlas, Dataset)
+    assert isinstance(model, GaussianMixture)
 
-    n_datasets = len(datasets)
-
-    data = [datasets[i][0] for i in range(n_datasets)]
-    ids = [datasets[i][1] for i in range(n_datasets)]
-
-    for i in range(n_datasets):
-        data[i] = preprocess_dataset(data[i])
-
-    train_data, test_data = data
-    train_ids, test_ids = ids
-
-    return train_data, train_ids, test_data, test_ids
-
-
-def train(data, ids, method=ClusteringMethod.kmeans, n_clusters=27):
-    logger.info("Begin clustering fit.")
-    model = None
-
-    if (method == ClusteringMethod.kmeans):
-        kmeans = KMeans(n_clusters=n_clusters).fit(data)
-        cluster_assignments = kmeans.labels_
-        # centroids = kmeans.cluster_centers_
-
-        # TODO: fix errors with this
-        # out_file = cell_clustering.default_locations[ClusteringMethod.kmeans][Split.train]
-        # with open(out_file, 'w') as f:
-        #     for i in range(len(ids)):
-        #         f.write(str(ids[i]) + " " + str(cluster_assignments[i]) + "\n")
-
-        model = kmeans
-    elif method == ClusteringMethod.meanshift:
-        # meanshift = MeanShift(bandwidth=2).fit(data)
-        # cluster_assignments = meanshift.labels_
-        raise Exception("Not yet implemented.")
-    elif method == ClusteringMethod.gmm:
-        # gmm = GaussianMixture(n_components=num_cell_types).fit(data)
-        raise Exception("Not yet implemented.")
-    else:
-        raise Exception("Invalid clustering method.")
-
-    logger.info("Exit clustering fit.")
-
-    return model
-
-
-def predict(data, ids, model, method=ClusteringMethod.kmeans):
-    logger.info("Begin clustering prediction.")
-    predictions = model.predict(data)
-
-    if (method == ClusteringMethod.kmeans):
-        # TODO: fix errors with this
-        # out_file = cell_clustering.default_locations[ClusteringMethod.kmeans][Split.test]
-        # with open(out_file, 'w') as f:
-        #     for i in range(len(ids)):
-        #         f.write(str(ids[i]) + " " + str(predictions[i]) + "\n")
-
-        return predictions
-    elif method == ClusteringMethod.meanshift:
-        raise Exception("Not yet implemented.")
-    elif method == ClusteringMethod.gmm:
-        raise Exception("Not yet implemented.")
-    else:
-        raise Exception("Invalid clustering method.")
-
-    logger.info("Exit clustering prediction.")
+    X = extract_features(human_protein_atlas, ids)
+    predictions = model.predict(X)
+    assignments = dict()
+    for i, id in enumerate(ids):
+        assignments[id] = predictions[i]
+    return assignments
 
 
 def main():
@@ -128,33 +63,37 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    train_dataset, train_ids, test_dataset, test_ids  = create_data_pipeline(human_protein_atlas)
+    X = extract_features(human_protein_atlas, partitions.train)
 
     logger.info("Fitting cell clusters...")
-    model = train(train_dataset, train_ids)
+    model = train_gmm(X, partitions.train)
 
-    logger.info("Predicting test set clusters...")
-    predict(test_dataset, test_ids, model)
+    logger.info("Saving GMM model.")
+    pickle.dump(model, open(args.model_file, 'wb'))
+
+    logger.info("Assigning training set clusters...")
+    assignments = assign_samples(human_protein_atlas, partitions.train, model)
+
+    logger.info("Saving cluster assignments")
+    pickle.dump(assignments, open(args.assignments_file, 'wb'))
 
     logger.info("Exiting.")
 
 
 def parse_args():
-    """
-    Parse the command line options for this file
-    :return: An argparse object containing parsed arguments
-    """
     parser = argparse.ArgumentParser(description="Cluster training data into cell types",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    info_options = parser.add_argument_group("Info")
-    info_options.add_argument("--config", required=False, type=str, help="Configuration file")
+    info_options = parser.add_argument_group("Config")
+    info_options.add_argument("--config", type=str, help="Configuration file")
+    info_options.add_argument("-d", "--num-clusters", default=4, type=int, help="Number of clusters")
 
     input_options = parser.add_argument_group("Input")
     input_options.add_argument('--path', help="Dataset input file")
 
     output_options = parser.add_argument_group("Output")
-    output_options.add_argument("--model-file", help="File to save trained model in")
+    output_options.add_argument("--model-file", required=True, help="File to save trained model in")
+    output_options.add_argument("--assignments-file", required=True, help="Save assignments")
 
     logging_options = parser.add_argument_group("Logging")
     logging_options.add_argument('--log', dest="log_level", default="DEBUG", help="Logging level")

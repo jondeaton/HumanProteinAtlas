@@ -32,10 +32,11 @@ def multi_hot_to_list(multi_hot, threshold=0.5):
 def evaluate_on(run_model, test_ids, output_dir):
     dataset = HumanProteinAtlas.Dataset(config.dataset_directory)
 
-    # m = len(test_ids)
-    m = 32
+    m = len(test_ids)
     true_labels = np.empty((m, len(Organelle)))
     probabilities = np.empty((m, len(Organelle)))
+
+    batch = np.empty((16, len(Organelle)))
 
     for i, id in enumerate(test_ids):
         if i == m: break
