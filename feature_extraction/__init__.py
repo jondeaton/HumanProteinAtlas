@@ -18,12 +18,12 @@ def extract_features(human_protein_atlas, ids, d=10):
 
     radon_features = compute_radon_features(human_protein_atlas, ids)
 
-    pca = PCA(n_components=d)
+    pca = PCA(n_components=d, whiten=True)
     components = pca.fit_transform(radon_features)
     
     # TODO: change! for testing only
     # assert components.shape == (len(ids), d)
-    assert components.shape == (100, d)
+    assert components.shape == (350, d)
  
     return components
 
@@ -44,7 +44,7 @@ def compute_radon_features(human_protein_atlas, ids):
 
         # TODO: remove! for debugging only
         if (i % 10 == 0): print(i)
-        if i ==99: break
+        if i ==349: break
 
     return extracted_features
 
