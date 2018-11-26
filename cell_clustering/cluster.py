@@ -24,6 +24,7 @@ from partitions import Split, partitions
 from preprocessing import preprocess_dataset
 from deep_model.config import Configuration
 from feature_extraction import extract_features
+from evaluation.metrics import plot_histogram
 
 
 class ClusteringMethod(Enum):
@@ -84,29 +85,40 @@ def main():
     if (os.path.isfile(args.model_file)):
         logger.info("Loading model from file.")
         with open(args.model_file, "rb") as file:
-            model = pickle.load(file)  
+            model = pickle.load(file)
     else :
         model = train_gmm(X, n_cells)
-        # model = train_kmeans(X, n_cells)
-        logger.info("Saving GMM model.")
+        logger.info("Saving model.")
         pickle.dump(model, open(args.model_file, 'wb+'))
 
     # TODO: fix me! for testing only
 
     # logger.info("Assigning training set clusters...")
-    # assignments = assign_samples(human_protein_atlas, partitions.train, model)
+    # assignments = assign_samples(human_protein_atlas, partitions.train, gmmodelm_model)
 
     # logger.info("Saving cluster assignments")
     # pickle.dump(assignments, open(args.assignments_file, 'wb+'))
 
+
+    # DEBUG-testing code
+
     predictions = model.predict(X)
+    predictions2 = train_kmeans(X, n_cells).predict(X)
 
     color_range = cm.rainbow(np.linspace(0, 1, n_cells))
-    colors = [color_range[predictions[i]] for i in range(len(predictions))]
+    colors = [color_range[predictions2[i]] for i in range(len(predictions2))]
     plt.scatter(X[:, 0], X[:, 1], c=colors)
     plt.xlabel("x1")
     plt.ylabel("x2")
     plt.show()
+
+    counts = np.zeros((2, n_cells))
+    for i in range(len(predictions)):
+        counts[0, predictions[i]] += 1
+        counts[1, predictions2[i]] += 1
+    
+    plot_histogram(counts, np.arange(n_cells), ["GMM", "KMeans"], "Cell clusters", "Cluster index", \
+        "Number of samples", "outputs/cluster_counts.png")
 
     logger.info("Exiting.")
 
