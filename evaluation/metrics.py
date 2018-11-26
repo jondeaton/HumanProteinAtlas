@@ -13,9 +13,7 @@ from sklearn import metrics
 
 from HumanProteinAtlas import organelle_name
 
-
 # Test error divide by zero histogram
-
 
 def evaluation_metrics(labels, y_probs, output_file="metrics.txt"):
     assert isinstance(labels, np.ndarray)

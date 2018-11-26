@@ -14,9 +14,10 @@ from partitions import Split
 
 class Dataset:
 
-    def __init__(self, path, split=Split.train, cache=False):
+    def __init__(self, path, split=Split.train, cache=False, scale=True):
         self.path = path
         self._cache = cache
+        self._scale = scale
 
         if split == Split.train:
             self.data_path = os.path.join(path, "train")
@@ -49,12 +50,13 @@ class Dataset:
     def shape(self):
         if self._shape is not None:
             return self._shape
-
         m = self.num_samples
-
-        sample_shape = (4,) + self.sample(self.sample_ids[0]).shape
-        self._shape = (m,) + sample_shape
+        self._shape = (m,) + self.image_shape
         return self._shape
+
+    @property
+    def image_shape(self):
+        return (4,) + next(self).shape
 
     def __len__(self):
         return len(self.sample_labels)
@@ -68,10 +70,10 @@ class Dataset:
             return self._samples[sample_id]
 
         if sample_id not in self.sample_labels:
-            raise ValueError("Non-esitatnt sample: %s" % sample_id)
+            raise ValueError("Unknown sample: %s" % sample_id)
 
         labels = self.sample_labels[sample_id]
-        s = sample.Sample(sample_id, labels, self.data_path, cache=self._cache)
+        s = sample.Sample(sample_id, labels, self.data_path, cache=self._cache, scale=self._scale)
         if self._cache:
             self._samples[sample_id] = s
         return s

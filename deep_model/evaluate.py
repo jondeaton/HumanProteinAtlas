@@ -16,8 +16,6 @@ import tensorflow as tf
 import HumanProteinAtlas
 from deep_model.config import Configuration
 from partitions import partitions, Split
-
-
 from evaluation import metrics
 from HumanProteinAtlas import Organelle
 
@@ -33,46 +31,60 @@ def multi_hot_to_list(multi_hot, threshold=0.5):
     return l
 
 
-def evaluate_on(run_model, test_ids, output_dir, batch_size=64):
-    dataset = HumanProteinAtlas.Dataset(config.dataset_directory)
+def labels_matrix(dataset, ids):
+    m = len(ids)
+    labels = np.empty((m, len(Organelle)))
+    for i, id in enumerate(ids):
+        sample = dataset.sample(id)
+        labels[i, :] = sample.multi_hot_label
+    return labels
 
-    m = len(test_ids)
-    true_labels = np.empty((m, len(Organelle)))
+
+def evaluate_on(dataset, run_model, ids, output_dir, name=""):
+    predictions_file = os.path.join(output_dir, "%s_preds.npy" % name)
+    output_file = os.path.join(output_dir, "metrics.txt")
+
+    if recompute or not os.path.exists(predictions_file):
+        probabilities = get_predictions(dataset, run_model, ids)
+        np.save(predictions_file, probabilities)
+    else:
+        probabilities = np.load(predictions_file)
+
+    true_labels = labels_matrix(dataset, ids)
+    metrics.evaluation_metrics(true_labels, probabilities, output_file=output_file)
+
+
+def get_predictions(dataset, run_model, ids, batch_size=64):
+    m = len(ids)
     probabilities = np.empty((m, len(Organelle)))
 
-    image_shape = dataset.shape[1:]
-    batch = np.empty((batch_size,) + image_shape)
+    batch = np.empty((batch_size,) + dataset.image_shape)
 
-    for i, id in enumerate(test_ids):
+    for i, id in enumerate(ids):
         sample = dataset.sample(id)
         batch[i % batch_size, :] = sample.multi_channel
 
         if i % batch_size == batch_size - 1:
-            batch_predictions = run_model(batch)
-            probabilities[i - batch_size + 1:i + 1, :] = batch_predictions
+            start = i - batch_size + 1
+            end = i + 1
+            probabilities[start:end, :] = run_model(batch)
 
         if i % 100 == 0:
             logger.info("Done with %d samples." % i)
 
-        true_labels[i, :] = sample.multi_hot_label
 
-    output_file = os.path.join(output_dir, "metrics.txt")
-    metrics.evaluation_metrics(true_labels, probabilities, output_file=output_file)
+    return probabilities
 
 
-def evaluate(run_model, output_dir):
-
+def evaluate(dataset, run_model, output_dir, recompute=False):
     logger.info("Evaluating test data...")
-    evaluate_on(run_model, partitions.test, output_dir)
+    evaluate_on(dataset, run_model, partitions.test, output_dir, name="test")
 
     logger.info("Evaluating validation data...")
-    evaluate_on(run_model, partitions.validation, output_dir)
-
-    logger.info("Evaluating training data...")
-    evaluate_on(run_model, partitions.train, output_dir)
+    evaluate_on(dataset, run_model, partitions.validation, output_dir, name="valid")
 
 
-def restore_and_evaluate(save_path, model_file, output_dir):
+def restore_and_evaluate(dataset, save_path, model_file, output_dir):
     tf.reset_default_graph()
 
     with tf.Session() as sess:
@@ -80,7 +92,6 @@ def restore_and_evaluate(save_path, model_file, output_dir):
         logger.info("Restoring model: %s" % model_file)
         saver = tf.train.import_meta_graph(model_file)
         saver.restore(sess, tf.train.latest_checkpoint(save_path))
-        logger.info("Model restored.")
 
         graph = tf.get_default_graph()
 
@@ -88,12 +99,14 @@ def restore_and_evaluate(save_path, model_file, output_dir):
         output = graph.get_tensor_by_name("output:0")
         is_training = graph.get_tensor_by_name("Placeholder_1:0")
 
-        def run_model(sample):
-            feed_dict = {input: sample, is_training: False}
+        logger.info("Model restored.")
+
+        def run_model(samples):
+            feed_dict = {input: samples, is_training: False}
             return sess.run(output, feed_dict=feed_dict)
 
-        logger.info("Evaluating mode...")
-        evaluate(run_model, output_dir)
+        logger.info("Evaluating model...")
+        evaluate(dataset, run_model, output_dir)
 
 
 def main():
@@ -119,23 +132,29 @@ def main():
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    restore_and_evaluate(save_path, model_file, output_dir)
+    global recompute
+    recompute = args.recompute
+
+    dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=args.scale)
+    restore_and_evaluate(dataset, save_path, model_file, output_dir)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate the human protein atlas model",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    input_options = parser.add_argument_group("Input")
-    input_options.add_argument("--save-path", required=True, help="Tensorflow save path")
-    input_options.add_argument("--model", required=True, help="File to save trained model in")
+    input_group = parser.add_argument_group("Input")
+    input_group.add_argument("--save-path", required=True, help="Tensorflow save path")
+    input_group.add_argument("--model", required=True, help="File to save trained model in")
 
-    output_options = parser.add_argument_group("Output")
-    output_options.add_argument("-o", "--output", required=True, help="Output directory to store plots")
+    output_group = parser.add_argument_group("Output")
+    output_group.add_argument("-o", "--output", required=True, help="Output directory to store plots")
 
-    info_options = parser.add_argument_group("Info")
-    info_options.add_argument("--config", required=False, type=str, help="Configuration file")
-    info_options.add_argument("-params", "--params", type=str, help="Hyperparameters json file")
+    options_group = parser.add_argument_group("Options")
+    options_group.add_argument("--config", required=False, type=str, help="Configuration file")
+    options_group.add_argument("-params", "--params", type=str, help="Hyperparameters json file")
+    options_group.add_argument("--scale", action='store_true', help="Scale the images down")
+    options_group.add_argument("--recompute", action='store_true', help="Recompute predictions")
 
     logging_options = parser.add_argument_group("Logging")
     logging_options.add_argument('--log', dest="log_level", default="DEBUG", help="Logging level")

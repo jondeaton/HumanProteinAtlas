@@ -52,6 +52,7 @@ class ModelTrainer(object):
 
         self.is_training = tf.placeholder(tf.bool)
         output, logits, self.cost = self.model(input, labels, self.is_training)
+        output = tf.identity(output, "output")
 
         self._define_logging_metrics(output, labels)
 

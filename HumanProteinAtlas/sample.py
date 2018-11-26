@@ -32,8 +32,10 @@ default_color_ordering = {color: idx for idx, color in enumerate(colors.values()
 
 
 class Sample:
-    def __init__(self, sample_id, labels, images_dir, cache=False,
+    def __init__(self, sample_id, labels, images_dir,
+                 cache=False, scale=True,
                  color_ordering=default_color_ordering):
+
         # public
         self.id = sample_id
         self.color_ordering = color_ordering
@@ -43,6 +45,7 @@ class Sample:
         # private
         self._images_dir = images_dir
         self._cache = cache
+        self._scale = scale
 
         self._image_locations = dict()
         self._images = dict()
@@ -107,7 +110,9 @@ class Sample:
         if color in self._images:
             return self._images[color]
 
-        img = self._load_image(color) / 256
+        img = self._load_image(color)
+        if self._scale:
+            img /= 255
 
         if self._cache:
             self._images[color] = img
