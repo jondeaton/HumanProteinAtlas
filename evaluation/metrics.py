@@ -9,7 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from sklearn import metrics
+
 from HumanProteinAtlas import organelle_name
+
+
+# Test error divide by zero histogram
 
 
 def evaluation_metrics(labels, y_probs, output_file="metrics.txt"):
@@ -41,13 +45,13 @@ def evaluation_metrics(labels, y_probs, output_file="metrics.txt"):
         print_and_write_line(file, "Coverage error: " + str(coverage))
 
         # Plot cells counts with a given protein count
-        plot_protein_counts(labels, pred_labels)
+        plot_label_histogram(labels, pred_labels)
 
         # Plot counts of each type of protein in prediction set
         plot_num_each_protein(labels, pred_labels)
 
 
-def plot_protein_counts(labels, pred_labels):
+def plot_label_histogram(labels, pred_labels):
     m = len(labels)
 
     true_counts_per_cell = [sum(labels[i]) for i in range(m)]
