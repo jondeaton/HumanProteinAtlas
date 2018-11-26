@@ -83,13 +83,9 @@ class Sample:
         combined = np.empty((4,) + self.shape)
 
         for color in list(Color):
-
+            img = self.image(color)
             if color in self._images:
-                img = self._images[color]
                 del self._images[color]
-            else:
-                img = self._load_image(color)
-
             idx = self.color_ordering[color]
             combined[idx] = img
 

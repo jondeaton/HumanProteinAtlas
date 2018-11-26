@@ -24,6 +24,7 @@ from HumanProteinAtlas import Organelle
 # Solves OpenMP multiple installation problem
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
+
 def multi_hot_to_list(multi_hot, threshold=0.5):
     l = list()
     for i in range(len(multi_hot)):

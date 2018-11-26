@@ -7,7 +7,6 @@ required_packages = [
     "matplotlib",
     "pandas",
     "sklearn",
-    "skimage",
     "imageio"]
 
 setup(name='HumanProteinAtlas',
