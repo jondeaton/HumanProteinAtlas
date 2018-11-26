@@ -15,6 +15,7 @@ from enum import Enum
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from sklearn.cluster import KMeans, MeanShift
 from sklearn.mixture import GaussianMixture
 
@@ -36,6 +37,10 @@ def train_gmm(X, n_clusters):
     gmm.fit(X)
     return gmm
 
+def train_kmeans(X, n_clusters):
+    kmeans = KMeans(n_clusters=n_clusters)
+    kmeans.fit(X)
+    return kmeans
 
 def assign_samples(ids, model, X):
     assert isinstance(model, GaussianMixture)
@@ -59,16 +64,32 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    X = extract_features(human_protein_atlas, partitions.train, 2)
+    n_cells = 27
+    n_components = 2
 
-    logger.info("Saving extracted features.")
-    pickle.dump(X, open(args.features_file, 'wb+'))
+    X = None
+    if (os.path.isfile(args.features_file)):
+        logger.info("Loading extracted features from file.")
+        with open(args.features_file, "rb") as file:
+            X = pickle.load(file)  
+    else :
+        X = extract_features(human_protein_atlas, partitions.train, n_components)
+
+        logger.info("Saving extracted features.")
+        pickle.dump(X, open(args.features_file, 'wb+'))
 
     logger.info("Fitting cell clusters...")
-    model = train_gmm(X, 27)
 
-    logger.info("Saving GMM model.")
-    pickle.dump(model, open(args.model_file, 'wb+'))
+    model = None
+    if (os.path.isfile(args.model_file)):
+        logger.info("Loading model from file.")
+        with open(args.model_file, "rb") as file:
+            model = pickle.load(file)  
+    else :
+        model = train_gmm(X, n_cells)
+        # model = train_kmeans(X, n_cells)
+        logger.info("Saving GMM model.")
+        pickle.dump(model, open(args.model_file, 'wb+'))
 
     # TODO: fix me! for testing only
 
@@ -79,7 +100,10 @@ def main():
     # pickle.dump(assignments, open(args.assignments_file, 'wb+'))
 
     predictions = model.predict(X)
-    plt.scatter(X[:, 0], X[:, 1], c=predictions)
+
+    color_range = cm.rainbow(np.linspace(0, 1, n_cells))
+    colors = [color_range[predictions[i]] for i in range(len(predictions))]
+    plt.scatter(X[:, 0], X[:, 1], c=colors)
     plt.xlabel("x1")
     plt.ylabel("x2")
     plt.show()

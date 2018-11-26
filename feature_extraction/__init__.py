@@ -12,18 +12,30 @@ from sklearn.decomposition import PCA
 from HumanProteinAtlas import Dataset, Sample
 
 
-def extract_features(human_protein_atlas, ids, d=10):
+def extract_features(human_protein_atlas, ids, d=10, use_radon=True):
     assert isinstance(ids, list)
     assert isinstance(human_protein_atlas, Dataset)
 
-    radon_features = compute_radon_features(human_protein_atlas, ids)
+    features = None
+    if use_radon:
+        features = compute_radon_features(human_protein_atlas, ids)
+    # else:
+    #     for i, id in enumerate(ids):
+    #         sample = human_protein_atlas[id]
+    #         assert isinstance(sample, Sample)
+    #         sample_features = np.concatenate((sample.yellow, sample.red, sample.blue))
+    #         extracted_features.append(sample_features)
+
+    #         # TODO: remove! for debugging only
+    #         if (i % 10 == 0): print(i)
+    #         if i == 449: break
 
     pca = PCA(n_components=d, whiten=True)
-    components = pca.fit_transform(radon_features)
+    components = pca.fit_transform(features)
     
     # TODO: change! for testing only
     # assert components.shape == (len(ids), d)
-    assert components.shape == (350, d)
+    assert components.shape == (450, d)
  
     return components
 
@@ -43,10 +55,10 @@ def compute_radon_features(human_protein_atlas, ids):
         extracted_features.append(sample_features)
 
         # TODO: remove! for debugging only
-        if (i % 10 == 0): print(i)
-        if i ==349: break
+        if (i % 10 == 0): print("Sample extract iteration:", i)
+        if i == 449: break
 
-    return extracted_features
+    return np.array(extracted_features)
 
 
 def get_radon_transform(img, n_beams=64):
