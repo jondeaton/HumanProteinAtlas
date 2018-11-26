@@ -10,9 +10,12 @@ import sys
 import argparse
 import logging
 import datetime
+import pickle
 from enum import Enum
 
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from sklearn.cluster import KMeans, MeanShift
 from sklearn.mixture import GaussianMixture
 
@@ -20,11 +23,8 @@ from HumanProteinAtlas import Dataset, Sample
 from partitions import Split, partitions
 from preprocessing import preprocess_dataset
 from deep_model.config import Configuration
-
-import cell_clustering
 from feature_extraction import extract_features
-
-import pickle
+from evaluation.metrics import plot_histogram
 
 
 class ClusteringMethod(Enum):
@@ -33,17 +33,19 @@ class ClusteringMethod(Enum):
     gmm = 2
 
 
-def train_gmm(X, n_cluster):
-    gmm = GaussianMixture(n_components=n_cluster)
+def train_gmm(X, n_clusters):
+    gmm = GaussianMixture(n_components=n_clusters)
     gmm.fit(X)
     return gmm
 
+def train_kmeans(X, n_clusters):
+    kmeans = KMeans(n_clusters=n_clusters)
+    kmeans.fit(X)
+    return kmeans
 
-def assign_samples(human_protein_atlas, ids, model):
-    assert isinstance(human_protein_atlas, Dataset)
+def assign_samples(ids, model, X):
     assert isinstance(model, GaussianMixture)
 
-    X = extract_features(human_protein_atlas, ids)
     predictions = model.predict(X)
     assignments = dict()
     for i, id in enumerate(ids):
@@ -63,19 +65,60 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    X = extract_features(human_protein_atlas, partitions.train)
+    n_cells = 27
+    n_components = 2
+
+    X = None
+    if (os.path.isfile(args.features_file)):
+        logger.info("Loading extracted features from file.")
+        with open(args.features_file, "rb") as file:
+            X = pickle.load(file)  
+    else :
+        X = extract_features(human_protein_atlas, partitions.train, n_components)
+
+        logger.info("Saving extracted features.")
+        pickle.dump(X, open(args.features_file, 'wb+'))
 
     logger.info("Fitting cell clusters...")
-    model = train_gmm(X, partitions.train)
 
-    logger.info("Saving GMM model.")
-    pickle.dump(model, open(args.model_file, 'wb'))
+    model = None
+    if (os.path.isfile(args.model_file)):
+        logger.info("Loading model from file.")
+        with open(args.model_file, "rb") as file:
+            model = pickle.load(file)
+    else :
+        model = train_gmm(X, n_cells)
+        logger.info("Saving model.")
+        pickle.dump(model, open(args.model_file, 'wb+'))
 
-    logger.info("Assigning training set clusters...")
-    assignments = assign_samples(human_protein_atlas, partitions.train, model)
+    # TODO: fix me! for testing only
 
-    logger.info("Saving cluster assignments")
-    pickle.dump(assignments, open(args.assignments_file, 'wb'))
+    # logger.info("Assigning training set clusters...")
+    # assignments = assign_samples(human_protein_atlas, partitions.train, gmmodelm_model)
+
+    # logger.info("Saving cluster assignments")
+    # pickle.dump(assignments, open(args.assignments_file, 'wb+'))
+
+
+    # DEBUG-testing code
+
+    predictions = model.predict(X)
+    predictions2 = train_kmeans(X, n_cells).predict(X)
+
+    color_range = cm.rainbow(np.linspace(0, 1, n_cells))
+    colors = [color_range[predictions2[i]] for i in range(len(predictions2))]
+    plt.scatter(X[:, 0], X[:, 1], c=colors)
+    plt.xlabel("x1")
+    plt.ylabel("x2")
+    plt.show()
+
+    counts = np.zeros((2, n_cells))
+    for i in range(len(predictions)):
+        counts[0, predictions[i]] += 1
+        counts[1, predictions2[i]] += 1
+    
+    plot_histogram(counts, np.arange(n_cells), ["GMM", "KMeans"], "Cell clusters", "Cluster index", \
+        "Number of samples", "outputs/cluster_counts.png")
 
     logger.info("Exiting.")
 
@@ -92,6 +135,7 @@ def parse_args():
     input_options.add_argument('--path', help="Dataset input file")
 
     output_options = parser.add_argument_group("Output")
+    output_options.add_argument("--features-file", required=True, help="File to save extracted features in")
     output_options.add_argument("--model-file", required=True, help="File to save trained model in")
     output_options.add_argument("--assignments-file", required=True, help="Save assignments")
 

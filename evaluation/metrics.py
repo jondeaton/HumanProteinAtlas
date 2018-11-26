@@ -7,9 +7,14 @@ Author: Robert Neff (rneff@stanford.edu)
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from matplotlib.ticker import MaxNLocator
 from sklearn import metrics
+
 from HumanProteinAtlas import organelle_name
+
+
+# Test error divide by zero histogram
 
 
 def evaluation_metrics(labels, y_probs, output_file="metrics.txt"):
@@ -41,13 +46,13 @@ def evaluation_metrics(labels, y_probs, output_file="metrics.txt"):
         print_and_write_line(file, "Coverage error: " + str(coverage))
 
         # Plot cells counts with a given protein count
-        plot_protein_counts(labels, pred_labels)
+        plot_label_histogram(labels, pred_labels)
 
         # Plot counts of each type of protein in prediction set
         plot_num_each_protein(labels, pred_labels)
 
 
-def plot_protein_counts(labels, pred_labels):
+def plot_label_histogram(labels, pred_labels):
     m = len(labels)
 
     true_counts_per_cell = [sum(labels[i]) for i in range(m)]
@@ -107,6 +112,33 @@ def plot_num_each_protein(labels, pred_labels):
     plt.xlabel("Protein")
     plt.ylabel("Label count")
     fig.savefig("outputs/proteins_label_counts.png")
+
+
+def plot_histogram(counts_matrix, x_tick_labels, legend_labels, title, xlabel, ylabel, outfile):
+    m, n = counts_matrix.shape
+    assert len(x_tick_labels) == n
+
+    count_range = np.arange(n)
+
+    width = 0.3
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    # Text below each barplot
+    plt.xticks([x + width / m  for x in count_range], x_tick_labels, rotation=90)
+
+    colors = cm.rainbow(np.linspace(0, 1, m))
+
+    # Each bar type
+    for i in range(m):
+        ax.bar(count_range + i * width, counts_matrix[i], width=width, color=colors[i], label=legend_labels[i])
+
+    plt.legend()
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.show()
+    fig.savefig(outfile)
 
 
 def print_and_write_line(file, str):
