@@ -10,9 +10,11 @@ import sys
 import argparse
 import logging
 import datetime
+import pickle
 from enum import Enum
 
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, MeanShift
 from sklearn.mixture import GaussianMixture
 
@@ -20,11 +22,7 @@ from HumanProteinAtlas import Dataset, Sample
 from partitions import Split, partitions
 from preprocessing import preprocess_dataset
 from deep_model.config import Configuration
-
-import cell_clustering
 from feature_extraction import extract_features
-
-import pickle
 
 
 class ClusteringMethod(Enum):
@@ -33,17 +31,15 @@ class ClusteringMethod(Enum):
     gmm = 2
 
 
-def train_gmm(X, n_cluster):
-    gmm = GaussianMixture(n_components=n_cluster)
+def train_gmm(X, n_clusters):
+    gmm = GaussianMixture(n_components=n_clusters)
     gmm.fit(X)
     return gmm
 
 
-def assign_samples(human_protein_atlas, ids, model):
-    assert isinstance(human_protein_atlas, Dataset)
+def assign_samples(ids, model, X):
     assert isinstance(model, GaussianMixture)
 
-    X = extract_features(human_protein_atlas, ids)
     predictions = model.predict(X)
     assignments = dict()
     for i, id in enumerate(ids):
@@ -63,19 +59,30 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    X = extract_features(human_protein_atlas, partitions.train)
+    X = extract_features(human_protein_atlas, partitions.train, 2)
+
+    logger.info("Saving extracted features.")
+    pickle.dump(X, open(args.features_file, 'wb+'))
 
     logger.info("Fitting cell clusters...")
-    model = train_gmm(X, partitions.train)
+    model = train_gmm(X, 27)
 
     logger.info("Saving GMM model.")
-    pickle.dump(model, open(args.model_file, 'wb'))
+    pickle.dump(model, open(args.model_file, 'wb+'))
 
-    logger.info("Assigning training set clusters...")
-    assignments = assign_samples(human_protein_atlas, partitions.train, model)
+    # TODO: fix me! for testing only
 
-    logger.info("Saving cluster assignments")
-    pickle.dump(assignments, open(args.assignments_file, 'wb'))
+    # logger.info("Assigning training set clusters...")
+    # assignments = assign_samples(human_protein_atlas, partitions.train, model)
+
+    # logger.info("Saving cluster assignments")
+    # pickle.dump(assignments, open(args.assignments_file, 'wb+'))
+
+    predictions = model.predict(X)
+    plt.scatter(X[:, 0], X[:, 1], c=predictions)
+    plt.xlabel("x1")
+    plt.ylabel("x2")
+    plt.show()
 
     logger.info("Exiting.")
 
@@ -92,6 +99,7 @@ def parse_args():
     input_options.add_argument('--path', help="Dataset input file")
 
     output_options = parser.add_argument_group("Output")
+    output_options.add_argument("--features-file", required=True, help="File to save extracted features in")
     output_options.add_argument("--model-file", required=True, help="File to save trained model in")
     output_options.add_argument("--assignments-file", required=True, help="Save assignments")
 
