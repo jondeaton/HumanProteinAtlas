@@ -4,6 +4,13 @@ CS229 Final Project
 
 ## Usage
 
+Extract features and cluster features
+
+	python -m cell_clustering.cluster \
+        --features-dir /path/to/features/directory \
+        --model-file  /path/to/model/file \
+        --assignments-file /path/to/assignments/file
+
 To train deep model
 
     python -m deep_model.train

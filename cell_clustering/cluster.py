@@ -29,24 +29,26 @@ from evaluation.metrics import plot_histogram
 
 class ClusteringMethod(Enum):
     kmeans = 0
-    meanshift = 1
-    gmm = 2
+    gmm = 1
 
 
 def train_gmm(X, n_clusters):
     gmm = GaussianMixture(n_components=n_clusters)
     gmm.fit(X)
+
     return gmm
+
 
 def train_kmeans(X, n_clusters):
     kmeans = KMeans(n_clusters=n_clusters)
     kmeans.fit(X)
     return kmeans
 
+
 def assign_samples(ids, model, X):
     assert isinstance(model, GaussianMixture)
 
-    predictions = model.predict(X)
+    predictions = model.predict_proba(X)
     assignments = dict()
     for i, id in enumerate(ids):
         assignments[id] = predictions[i]
@@ -65,24 +67,19 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    n_cells = 27
-    n_components = 2
+    n_cells = 27 # change to 4
+    n_components = 2 # change to 1000
 
-    X = None
-    if (os.path.isfile(args.features_file)):
-        logger.info("Loading extracted features from file.")
-        with open(args.features_file, "rb") as file:
-            X = pickle.load(file)  
-    else :
-        X = extract_features(human_protein_atlas, partitions.train, n_components)
+    # Extract
 
-        logger.info("Saving extracted features.")
-        pickle.dump(X, open(args.features_file, 'wb+'))
+    logger.info("Loading extracted features from file.")
+    X = extract_features(human_protein_atlas, partitions.train, n_components, args.features_dir)
+
+    # Train / Fit
 
     logger.info("Fitting cell clusters...")
-
     model = None
-    if (os.path.isfile(args.model_file)):
+    if os.path.isfile(args.model_file):
         logger.info("Loading model from file.")
         with open(args.model_file, "rb") as file:
             model = pickle.load(file)
@@ -91,22 +88,29 @@ def main():
         logger.info("Saving model.")
         pickle.dump(model, open(args.model_file, 'wb+'))
 
-    # TODO: fix me! for testing only
+    # Predict
 
-    # logger.info("Assigning training set clusters...")
-    # assignments = assign_samples(human_protein_atlas, partitions.train, gmmodelm_model)
+    logger.info("Assigning training set clusters...")
+    assignments = None
+    if os.path.isfile(args.assignments_file):
+        logger.info("Loading model from file.")
+        with open(args.assignments_file, "rb") as file:
+            assignments = pickle.load(file)
+    else :
+        assignments = assign_samples(partitions.train, model, X)
+        logger.info("Saving cluster assignments")
+        pickle.dump(assignments, open(args.assignments_file, 'wb+'))
 
-    # logger.info("Saving cluster assignments")
-    # pickle.dump(assignments, open(args.assignments_file, 'wb+'))
 
 
     # DEBUG-testing code
-
     predictions = model.predict(X)
+    posterior_probs = model.predict_proba(X)
+
     predictions2 = train_kmeans(X, n_cells).predict(X)
 
     color_range = cm.rainbow(np.linspace(0, 1, n_cells))
-    colors = [color_range[predictions2[i]] for i in range(len(predictions2))]
+    colors = [color_range[predictions[i]] for i in range(len(predictions))]
     plt.scatter(X[:, 0], X[:, 1], c=colors)
     plt.xlabel("x1")
     plt.ylabel("x2")
@@ -135,7 +139,7 @@ def parse_args():
     input_options.add_argument('--path', help="Dataset input file")
 
     output_options = parser.add_argument_group("Output")
-    output_options.add_argument("--features-file", required=True, help="File to save extracted features in")
+    output_options.add_argument("--features-dir", required=True, help="Directory to save pca/radon extracted features in")
     output_options.add_argument("--model-file", required=True, help="File to save trained model in")
     output_options.add_argument("--assignments-file", required=True, help="Save assignments")
 
