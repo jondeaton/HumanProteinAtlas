@@ -42,7 +42,7 @@ def extract_features(human_protein_atlas, ids, d=10, save_dir=".", force_recompu
     return components
 
 
-def compute_radon_features(human_protein_atlas, ids, save_dir, n_cores=4):
+def compute_radon_features(human_protein_atlas, ids, save_dir):
     assert isinstance(ids, list)
     assert isinstance(human_protein_atlas, Dataset)
 
@@ -51,7 +51,14 @@ def compute_radon_features(human_protein_atlas, ids, save_dir, n_cores=4):
 
     # Spawn process to handle subset of ids extraction
     processes = []
-    for i, id_subset in enumerate(np.array_split(ids, n_cores)):
+
+    # Get CPU count
+    try: 
+        n_cpus = len(os.sched_getaffinity(0)) # useable cpu count, should work on Unix-base
+    except:
+        n_cpus = mp.cpu_count() # total cpu count, works on Windows
+
+    for i, id_subset in enumerate(np.array_split(ids, n_cpus)):
         filename = os.path.join(save_dir, "radon_features_" + str(i) + ".radon_data")
         
         p = mp.Process(target=radon_features_helper, args=(human_protein_atlas, id_subset, filename))
@@ -65,7 +72,7 @@ def compute_radon_features(human_protein_atlas, ids, save_dir, n_cores=4):
     # Combine data from save directory and remove files
     # Iterates in order to preserve ids ordering
     combined_features = []
-    for i in range(n_cores):
+    for i in range(n_cpus):
         filename  = os.path.join(save_dir, "radon_features_" + str(i) + ".radon_data")
         
         assert os.path.isfile(filename)
