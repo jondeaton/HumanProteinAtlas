@@ -42,19 +42,16 @@ def labels_matrix(dataset, ids):
 
 def evaluate_on(dataset, run_model, ids, output_dir, name=""):
     predictions_file = os.path.join(output_dir, "%s_preds.npy" % name)
-    output_file = os.path.join(output_dir, "metrics.txt")
 
     if recompute or not os.path.exists(predictions_file):
-        probabilities = get_predictions(dataset, run_model, ids)
-        np.save(predictions_file, probabilities)
+        y_score = get_predictions(dataset, run_model, ids)
+        np.save(predictions_file, y_score)
     else:
-        probabilities = np.load(predictions_file)
+        y_score = np.load(predictions_file)
 
-    true_labels = labels_matrix(dataset, ids)
-
-    metrics.
-
-    metrics.evaluation_metrics(true_labels, probabilities, output_file=output_file)
+    y_true = labels_matrix(dataset, ids)
+    y_pred = np.where(y_score >= 0.5, 1, 0)
+    metrics.create_report(y_true, y_score, y_pred, output_dir, print=True)
 
 
 def get_predictions(dataset, run_model, ids, batch_size=64):

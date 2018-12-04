@@ -5,6 +5,7 @@ Date: 12/4/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
+import os
 import sklearn
 import numpy as np
 
@@ -13,7 +14,6 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 from HumanProteinAtlas import organelle_name
-
 
 
 def plot_label_histogram(labels, pred_labels, save_file="proteins_cell_counts.png"):
@@ -78,20 +78,43 @@ def plot_num_each_protein(labels, pred_labels, save_file="proteins_label_counts.
     plt.savefig(save_file)
 
 
-def plot_per_class_metrics(labels, y_probs, y_pred):
-    plot_per_class_metric(labels, y_pred, sklearn.metrics.accuracy_score, "accuracy")
-    plot_per_class_metric(labels, y_pred, sklearn.metrics.precision_score, "precision")
-    plot_per_class_metric(labels, y_pred, sklearn.metrics.recall_score, "recall")
-    plot_per_class_metric(labels, y_pred, sklearn.metrics.f1_score, "F1")
+def plot_per_class_metrics(labels, y_probs, y_pred, output_dir):
+
+    image_files = list() # save the list of image files created during this function
+
+    accuracy_image = os.path.join(output_dir, "per-class_accuracy.png")
+    plot_per_class_metric(labels, y_pred, sklearn.metrics.accuracy_score, "accuracy", save_file=accuracy_image)
+    image_files.append(accuracy_image)
+
+    precision_image = os.path.join(output_dir, "per-class_precision.png")
+    plot_per_class_metric(labels, y_pred, sklearn.metrics.precision_score, "precision", save_file=precision_image)
+    image_files.append(precision_image)
+
+    recall_image = os.path.join(output_dir, "pre-class_recall.png")
+    plot_per_class_metric(labels, y_pred, sklearn.metrics.recall_score, "recall", save_file=recall_image)
+    image_files.append(recall_image)
+
+    f1_image = os.path.join(output_dir, "per-class_f1.png")
+    plot_per_class_metric(labels, y_pred, sklearn.metrics.f1_score, "F1", save_file=f1_image)
+    image_files.append(f1_image)
+
+    roc_auc_image = os.path.join(output_dir, "per-class_roc_auc.png")
     plot_per_class_metric(labels, y_probs, sklearn.metrics.roc_auc_score, "ROC AUC")
+    image_files.append(roc_auc_image)
 
     # Per-class ROC
+    roc_curves_image = os.path.join(output_dir, "roc_curves.png")
     skplt.metrics.plot_roc_curve(labels, y_probs)
-    plt.savefig("per-class_ROC.png")
+    plt.savefig(roc_curves_image)
+    image_files.append(roc_auc_image)
 
     # Per-class Precision Recall
+    pr_curve_image = os.path.join(output_dir, "pr_curves.png")
     skplt.metrics.plot_precision_recall_curve(labels, y_probs)
-    plt.savefig()
+    plt.savefig(pr_curve_image)
+    image_files.append(pr_curve_image)
+
+    return image_files
 
 
 def plot_per_class_metric(labels, y_out, get_metric, metric_name, save_file=None):

@@ -91,7 +91,7 @@ def print_evaluation_metrics(metrics):
         print("metric:\t%s" % value)
 
 
-def save_metrics_report(metrics, output_file="metrics_report.md"):
+def save_metrics_report(metrics, output_file, images=None):
     assert isinstance(metrics, dict)
 
     report_lines = list()
@@ -99,7 +99,14 @@ def save_metrics_report(metrics, output_file="metrics_report.md"):
     for metric, value in metrics.items():
         report_lines.append("%s: %s" % (metric, value))
 
+    report_lines.append("---")
+    # add in the images
+    for image_file in images:
+        line = "![%s](%s) " % (image_file, image_file)
+        report_lines.append(line)
+        
     report = "\n".join(report_lines)
 
+    # save the report to file
     with open(output_file, "w+") as file:
         file.write(report)
