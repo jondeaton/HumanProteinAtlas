@@ -51,6 +51,9 @@ def evaluate_on(dataset, run_model, ids, output_dir, name=""):
         probabilities = np.load(predictions_file)
 
     true_labels = labels_matrix(dataset, ids)
+
+    metrics.
+
     metrics.evaluation_metrics(true_labels, probabilities, output_file=output_file)
 
 
