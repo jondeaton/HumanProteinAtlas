@@ -81,14 +81,14 @@ def plot_evaluation_metrics(labels, y_score, y_pred, output_dir):
     image_files.append(per_class_counts_file)
 
     # plot per-class metrics
-    per_class_images = plotting.plot_per_class_metrics(labels, y_score, y_pred)
+    per_class_images = plotting.plot_per_class_metrics(labels, y_score, y_pred, output_dir)
     image_files.extend(per_class_images)
     return image_files
 
 
 def print_evaluation_metrics(metrics):
     for metric, value in metrics.items():
-        print("metric:\t%s" % value)
+        print("%s:\t%s" % (metric, value))
 
 
 def save_metrics_report(metrics, output_file, images=None):
@@ -104,7 +104,7 @@ def save_metrics_report(metrics, output_file, images=None):
     for image_file in images:
         line = "![%s](%s) " % (image_file, image_file)
         report_lines.append(line)
-        
+
     report = "\n".join(report_lines)
 
     # save the report to file

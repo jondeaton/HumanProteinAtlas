@@ -44,11 +44,15 @@ def evaluate_on(dataset, run_model, ids, output_dir, name=""):
     predictions_file = os.path.join(output_dir, "%s_preds.npy" % name)
 
     if recompute or not os.path.exists(predictions_file):
+        logger.info("Recomputing predictions...")
         y_score = get_predictions(dataset, run_model, ids)
+        logger.info("Saving predictions to: %s" % predictions_file)
         np.save(predictions_file, y_score)
     else:
+        logger.info("Loading predictions from: %s" % predictions_file)
         y_score = np.load(predictions_file)
 
+    logger.info("Creating evaluation metrics report...")
     y_true = labels_matrix(dataset, ids)
     y_pred = np.where(y_score >= 0.5, 1, 0)
     metrics.create_report(y_true, y_score, y_pred, output_dir, print=True)
@@ -71,7 +75,6 @@ def get_predictions(dataset, run_model, ids, batch_size=64):
 
         if i % 100 == 0:
             logger.info("Done with %d samples." % i)
-
 
     return probabilities
 
