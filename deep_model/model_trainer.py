@@ -181,7 +181,6 @@ class ModelTrainer(object):
 
     def _get_optimizer(self, cost):
         if self.params.adam:
-
             # With Adam optimization: no learning rate decay
             learning_rate = tf.constant(self.params.learning_rate, dtype=tf.float32)
             sgd = tf.train.AdamOptimizer(learning_rate=learning_rate, name="Adam")
@@ -197,7 +196,12 @@ class ModelTrainer(object):
                                                        name="learning_rate")
 
             sgd = tf.train.GradientDescentOptimizer(learning_rate=learning_rate, name="SGD")
-        optimizer = sgd.minimize(cost, name='optimizer', global_step=self.global_step)
+
+        # Update the moving mean/variance with each step for Batch Normalization
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            optimizer = sgd.minimize(cost, name='optimizer', global_step=self.global_step)
+
         return optimizer, learning_rate
 
     def _get_job_name(self):
