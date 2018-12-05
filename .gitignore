@@ -911,7 +911,7 @@ flycheck_*.el
 # directory configuration
 .dir-locals.el
 
-.gitignore
+deep_model/cofnig.ini
 .idea/CS229-Project.iml
 .idea/inspectionProfiles/
 .idea/misc.xml

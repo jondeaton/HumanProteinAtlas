@@ -112,7 +112,7 @@ class Sample:
 
         img = self._load_image(color)
         if self._scale:
-            img /= 255
+            img = img / 255
 
         if self._cache:
             self._images[color] = img
