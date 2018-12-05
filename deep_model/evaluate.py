@@ -137,6 +137,11 @@ def main():
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
+    if args.scale:
+        logger.info("Images are NOT rescaled")
+    else:
+        logger.info("Images are rescaled between 0 and 1")
+
     dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=args.scale)
     run_model = None
     if args.recompute:

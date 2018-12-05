@@ -72,13 +72,10 @@ class Sample:
     @property
     def multi_channel(self):
         """
-
         the first time that we call this all the images
         which we may have loaded into the "_images" dictionary
         get moved into the combined numpy array and are accessed
-        from that location in stead thereafter
-
-        :return:
+        from that location instead thereafter
         """
         if self._combined is not None:
             return self._combined
@@ -103,13 +100,17 @@ class Sample:
 
         assert isinstance(color, Color)
 
+        # if it's already been loaded into the
+        # combined channel image, just get it from there
         if self._combined is not None:
             idx = self.color_ordering[color]
             return self._combined[idx]
 
+        # It it has already been loaded and cached
         if color in self._images:
             return self._images[color]
 
+        # Not present. Must load from disk
         img = self._load_image(color)
         if self._scale:
             img = img / 255
