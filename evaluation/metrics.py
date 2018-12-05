@@ -16,7 +16,7 @@ metric_descriptions = {
     "macro-F1": "F-measure averaging on each label",
     "instance-F1": "F-measure averaging on each instance",
     "micro-F1": "F-measure averaging on the prediction matrix",
-    "weighted-F1": "F-measure with weighting",
+    "weighted-F1": "F-measure calculated for each label, and averaged as weighted by the number of true instances for each label",
 
     "Hamming loss": "The fraction of misclassified labels",
     "ranking loss": "The average fraction of reversely ordered label pairs of each instance",
