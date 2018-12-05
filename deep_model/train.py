@@ -114,7 +114,6 @@ def parse_args():
                                  dest="log_level",
                                  choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                                  default="DEBUG", help="Logging level")
-
     args = parser.parse_args()
 
     # Setup the logger

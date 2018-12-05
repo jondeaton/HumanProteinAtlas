@@ -85,24 +85,25 @@ def compute_predictions(dataset, run_model, ids, batch_size=64):
 def restore_model(save_path, model_file):
     tf.reset_default_graph()
 
-    with tf.Session() as sess:
-        logger.info("Restoring model: %s" % model_file)
-        saver = tf.train.import_meta_graph(model_file)
-        saver.restore(sess, tf.train.latest_checkpoint(save_path))
+    sess = tf.Session()
 
-        graph = tf.get_default_graph()
+    logger.info("Restoring model: %s" % model_file)
+    saver = tf.train.import_meta_graph(model_file)
+    saver.restore(sess, tf.train.latest_checkpoint(save_path))
 
-        input = graph.get_tensor_by_name("input:0")
-        output = graph.get_tensor_by_name("output:0")
-        is_training = graph.get_tensor_by_name("Placeholder_1:0")
+    graph = tf.get_default_graph()
 
-        logger.info("Model restored.")
+    input = graph.get_tensor_by_name("input:0")
+    output = graph.get_tensor_by_name("output:0")
+    is_training = graph.get_tensor_by_name("Placeholder_1:0")
 
-        def run_model(samples):
-            feed_dict = {input: samples, is_training: False}
-            return sess.run(output, feed_dict=feed_dict)
+    logger.info("Model restored.")
 
-        return run_model
+    def run_model(samples):
+        feed_dict = {input: samples, is_training: False}
+        return sess.run(output, feed_dict=feed_dict)
+
+    return sess, run_model
 
 
 def labels_matrix(dataset, ids):
@@ -146,7 +147,7 @@ def main():
     run_model = None
     if args.recompute:
         logger.info("Restoring model...")
-        run_model = restore_model(save_path, model_file)
+        sess, run_model = restore_model(save_path, model_file)
         logger.info("Model successfully restored.")
 
     test_output = os.path.join(output_dir, "test_evaluation")
@@ -161,6 +162,10 @@ def main():
         os.makedirs(valid_output, exist_ok=True)
     evaluate_model(dataset, partitions.validation, valid_output,
                    recompute=args.recompute, run_model=run_model, name="validation")
+
+    # close up the session if one was opened
+    if args.recompute:
+        sess.close()
 
 
 def parse_args():
