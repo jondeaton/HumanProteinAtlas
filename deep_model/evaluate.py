@@ -23,42 +23,45 @@ from HumanProteinAtlas import Organelle
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
-def multi_hot_to_list(multi_hot, threshold=0.5):
-    l = list()
-    for i in range(len(multi_hot)):
-        if multi_hot[i] > threshold:
-            l.append(i)
-    return l
+def evaluate_model(dataset, ids, output_dir, recompute=False, run_model=None, name="test"):
+    """
+    Evaluate the performance of a prediction model on a collection of samples
 
+    :param dataset: HumanProteinAtlas Dataset
+    :param ids: List of sample IDs from the dataset on which to evaluate the model
+    :param output_dir: output directory to write outputs to
+    :param recompute: Whether to recompute the predictions
+    :param run_model: Function which will run predictions on a model
+    :param name: The name of this evaluation
+    :return: None
+    """
+    assert isinstance(dataset, HumanProteinAtlas.Dataset)
 
-def labels_matrix(dataset, ids):
-    m = len(ids)
-    labels = np.empty((m, len(Organelle)))
-    for i, id in enumerate(ids):
-        sample = dataset.sample(id)
-        labels[i, :] = sample.multi_hot_label
-    return labels
+    if recompute and run_model is None:
+        raise ValueError("Must pass model to run_model if recomputing predictions")
 
-
-def evaluate_on(dataset, run_model, ids, output_dir, name=""):
     predictions_file = os.path.join(output_dir, "%s_preds.npy" % name)
+    if not recompute and not os.path.exists(predictions_file):
+        raise ValueError("Predictions file not found: %s" % predictions_file)
 
     if recompute or not os.path.exists(predictions_file):
-        logger.info("Recomputing predictions...")
-        y_score = get_predictions(dataset, run_model, ids)
+        logger.info("Computing predictions...")
+        y_score = compute_predictions(dataset, run_model, ids)
         logger.info("Saving predictions to: %s" % predictions_file)
         np.save(predictions_file, y_score)
     else:
-        logger.info("Loading predictions from: %s" % predictions_file)
+        # if not recomputing... just trying to reload them from a previous save file
+        logger.info("Loading pre-computed predictions from: %s" % predictions_file)
         y_score = np.load(predictions_file)
 
     logger.info("Creating evaluation metrics report...")
     y_true = labels_matrix(dataset, ids)
     y_pred = np.where(y_score >= 0.5, 1, 0)
+
     metrics.create_report(y_true, y_score, y_pred, output_dir, print=True)
 
 
-def get_predictions(dataset, run_model, ids, batch_size=64):
+def compute_predictions(dataset, run_model, ids, batch_size=64):
     m = len(ids)
     probabilities = np.empty((m, len(Organelle)))
 
@@ -79,19 +82,10 @@ def get_predictions(dataset, run_model, ids, batch_size=64):
     return probabilities
 
 
-def evaluate(dataset, run_model, output_dir, recompute=False):
-    logger.info("Evaluating test data...")
-    evaluate_on(dataset, run_model, partitions.test, output_dir, name="test")
-
-    logger.info("Evaluating validation data...")
-    evaluate_on(dataset, run_model, partitions.validation, output_dir, name="valid")
-
-
-def restore_and_evaluate(dataset, save_path, model_file, output_dir):
+def restore_model(save_path, model_file):
     tf.reset_default_graph()
 
     with tf.Session() as sess:
-
         logger.info("Restoring model: %s" % model_file)
         saver = tf.train.import_meta_graph(model_file)
         saver.restore(sess, tf.train.latest_checkpoint(save_path))
@@ -108,8 +102,16 @@ def restore_and_evaluate(dataset, save_path, model_file, output_dir):
             feed_dict = {input: samples, is_training: False}
             return sess.run(output, feed_dict=feed_dict)
 
-        logger.info("Evaluating model...")
-        evaluate(dataset, run_model, output_dir)
+        return run_model
+
+
+def labels_matrix(dataset, ids):
+    m = len(ids)
+    labels = np.empty((m, len(Organelle)))
+    for i, id in enumerate(ids):
+        sample = dataset.sample(id)
+        labels[i, :] = sample.multi_hot_label
+    return labels
 
 
 def main():
@@ -135,11 +137,25 @@ def main():
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    global recompute
-    recompute = args.recompute
-
     dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=args.scale)
-    restore_and_evaluate(dataset, save_path, model_file, output_dir)
+    run_model = None
+    if args.recompute:
+        logger.info("Restoring model...")
+        run_model = restore_model(save_path, model_file)
+        logger.info("Model successfully restored.")
+
+    test_output = os.path.join(output_dir, "test_evaluation")
+    if not os.path.isdir(test_output):
+        os.makedirs(test_output, exist_ok=True)
+
+    evaluate_model(dataset, partitions.test, test_output,
+                   recompute=args.recompute, run_model=run_model, name="test")
+
+    valid_output = os.path.join(output_dir, "validation_evaluation")
+    if not os.path.isdir(valid_output):
+        os.makedirs(valid_output, exist_ok=True)
+    evaluate_model(dataset, partitions.validation, valid_output,
+                   recompute=args.recompute, run_model=run_model, name="validation")
 
 
 def parse_args():
