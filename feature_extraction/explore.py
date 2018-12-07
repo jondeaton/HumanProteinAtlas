@@ -1,42 +1,41 @@
 #!/usr/bin/env python
 """
+File: explore
+Date: 12/7/18 
+Author: Jon Deaton (jdeaton@stanford.edu)
+"""
+
+#!/usr/bin/env python
+"""
 File: extract
 Date: 12/7/18 
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
-import os
-import sys
-import numpy as np
+import os, sys
 import logging, argparse
+
+import numpy as np
 
 import HumanProteinAtlas
 from deep_model.config import Configuration
-from HumanProteinAtlas import Dataset
+from HumanProteinAtlas import Dataset, Color
 
 from partitions import partitions
-from feature_extraction.drt import get_radon_transform
-import multiprocessing as mp
+from feature_extraction import get_features
+
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 
-def _extract_radon_save(t):
-    return save_radon_features(*t)
+def explore_features(X):
+    pca = PCA(n_components=2, whiten=True)
+    principalComponents = pca.fit_transform(X)
 
+    plt.figure()
+    plt.scatter(principalComponents)
+    plt.show()
 
-def save_radon_features(human_protein_atlas, id, out_dir):
-    logger.info("Extracting: %s" % id)
-
-    assert isinstance(human_protein_atlas, Dataset)
-
-    sample = human_protein_atlas[id]
-
-    yellow_features = get_radon_transform(sample.yellow)
-    red_features = get_radon_transform(sample.red)
-    blue_features = get_radon_transform(sample.blue)
-    radon_features = np.concatenate((yellow_features, red_features, blue_features))
-
-    drt_save_file = os.path.join(out_dir, "%s_drt" % str(id))
-    np.save(drt_save_file, radon_features)
 
 
 def main():
@@ -48,14 +47,25 @@ def main():
     else:
         config = Configuration()
 
-    output_dir = os.path.expanduser(args.output)
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    if args.output is not None:
+        output_dir = os.path.expanduser(args.output)
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+    else:
+        output_dir = None
 
-    dataset = HumanProteinAtlas.Dataset(config.dataset_directory)
-    pool = mp.Pool(args.pool_size)
-    extraction_args = [(dataset, id, output_dir) for id in partitions.train]
-    pool.map(_extract_radon_save, extraction_args)
+    dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=False)
+
+    experimental_ids = np.random.choice(partitions.train, args.num_examples, replace=False)
+
+    features = list()
+    for id in experimental_ids:
+        img = dataset[id].combined((Color.blue, Color.yellow, Color.red))
+        fts = get_features(img)
+        features.append(fts)
+
+    X = np.concatenate(features, axis=0)
+    explore_features(X)
 
 
 def parse_args():
@@ -63,13 +73,12 @@ def parse_args():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     output_group = parser.add_argument_group("Output")
-    output_group.add_argument("-o", "--output", required=True, help="Output directory to store plots")
+    output_group.add_argument("-o", "--output", required=False, help="Output directory to store plots")
 
     options_group = parser.add_argument_group("Options")
     options_group.add_argument("--config", required=False, type=str, help="Configuration file")
-    options_group.add_argument("-params", "--params", type=str, help="Hyperparameters json file")
-    options_group.add_argument("--scale", action='store_true', help="Scale the images down")
     options_group.add_argument("-p", "--pool-size", type=int, default=8, help="Worker pool size")
+    options_group.add_argument("-m", "--num-examples", type=int, default=2000, help="Number of examples")
 
     logging_options = parser.add_argument_group("Logging")
     logging_options.add_argument('--log', dest="log_level", default="DEBUG", help="Logging level")

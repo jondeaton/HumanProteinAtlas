@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-File: extract
+File: reduce_features
 Date: 12/7/18 
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
@@ -15,28 +15,8 @@ from deep_model.config import Configuration
 from HumanProteinAtlas import Dataset
 
 from partitions import partitions
-from feature_extraction.drt import get_radon_transform
 import multiprocessing as mp
 
-
-def _extract_radon_save(t):
-    return save_radon_features(*t)
-
-
-def save_radon_features(human_protein_atlas, id, out_dir):
-    logger.info("Extracting: %s" % id)
-
-    assert isinstance(human_protein_atlas, Dataset)
-
-    sample = human_protein_atlas[id]
-
-    yellow_features = get_radon_transform(sample.yellow)
-    red_features = get_radon_transform(sample.red)
-    blue_features = get_radon_transform(sample.blue)
-    radon_features = np.concatenate((yellow_features, red_features, blue_features))
-
-    drt_save_file = os.path.join(out_dir, "%s_drt" % str(id))
-    np.save(drt_save_file, radon_features)
 
 
 def main():
@@ -53,9 +33,7 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
 
     dataset = HumanProteinAtlas.Dataset(config.dataset_directory)
-    pool = mp.Pool(args.pool_size)
-    extraction_args = [(dataset, id, output_dir) for id in partitions.train]
-    pool.map(_extract_radon_save, extraction_args)
+
 
 
 def parse_args():
