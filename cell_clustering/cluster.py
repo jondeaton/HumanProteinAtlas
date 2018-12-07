@@ -24,7 +24,6 @@ from partitions import Split, partitions
 from preprocessing import preprocess_dataset
 from deep_model.config import Configuration
 from feature_extraction import batch_fit_pca_model, batch_disk_pca_transform
-from evaluation.metrics import plot_histogram
 
 from cell_clustering.predict import predict_sample_prob
 
