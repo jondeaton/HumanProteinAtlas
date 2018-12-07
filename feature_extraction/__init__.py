@@ -143,6 +143,15 @@ def compute_radon_features(human_protein_atlas, ids, save_dir="", sequential=Tru
         return multiprocessed_batch_disk_radon_features(human_protein_atlas, ids, save_dir, training)
 
 
+def save_radon_features(human_protein_atlas, id, out_dir):
+    assert isinstance(human_protein_atlas, Dataset)
+
+    radon_features = radon_features_helper(human_protein_atlas, [id])[0]
+    id_save_file = os.path.join(out_dir, str(id) + ".radon_data")
+        with open(id_save_file, 'wb+') as file:
+            np.save(file, radon_features)
+
+
 def sequential_batch_disk_radon_features(human_protein_atlas, ids, save_dir, batch_size=10, training=True):
     for i, id_subset in enumerate(np.array_split(ids, batch_size)):
         filename = os.path.join(save_dir, "radon_features_" + str(i) + ("_train" if training else "_test") + ".radon_data")

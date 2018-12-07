@@ -32,8 +32,6 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     human_protein_atlas = Dataset(config.dataset_directory)
 
-
-
     make_radon_dataset(human_protein_atlas, partitions.train, args.features_dir, args.out_dir)
 
     logger.info("Exiting.")
