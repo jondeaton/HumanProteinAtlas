@@ -11,91 +11,208 @@ import pickle
 
 import numpy as np
 from skimage.transform import radon, rescale
-from sklearn.decomposition import PCA
+from sklearn.decomposition import IncrementalPCA, PCA
 
 from HumanProteinAtlas import Dataset, Sample
 
 
-def extract_features(human_protein_atlas, ids, d=10, save_dir=".", force_recompute=False):
+def extract_pca_features(pca_model, X, save_dir="", training=True):
     assert isinstance(ids, list)
     assert isinstance(human_protein_atlas, Dataset)
 
-    pca_file = os.path.join(save_dir, "pca_features_" + str(d))
-    if os.path.isfile(pca_file) and not force_recompute:
-        return pickle.load(open(pca_file, "rb" ))
+    pca_features_file = os.path.join(save_dir, "pca_features_" + str(d) + "_train" if training else "_test")
+    if os.path.exists(pca_features_file):
+        with open(pca_features_file, "rb" ) as file:
+            return pickle.load(file)
 
-    features = None
-    if os.listdir(save_dir) and not force_recompute:
-        features = pickle.load(open(save_dir, "rb" ))
-    else:
-        features = compute_radon_features(human_protein_atlas, ids, save_dir)
-
-    pca = PCA(n_components=d, whiten=True)
-    components = pca.fit_transform(features)
-
-    # TODO: change! for testing only
-    # assert components.shape == (len(ids), d)
-    assert components.shape == (100, d)
-
-    pickle.dump(components, open(pca_file, 'wb+'))
+    pca_features = pca_model.transform(X)
  
-    return components
+    if save_dir != "":
+        with open(pca_features, 'wb+') as file:
+            pickle.dump(pca_features, file)
+
+    return pca_features
 
 
-def compute_radon_features(human_protein_atlas, ids, save_dir):
+def batch_disk_pca_transform(pca_model, save_dir, training=True):
+    pca_features_file = os.path.join(save_dir, "pca_features_" + str(d) + "_train" if training else "_test")
+    if os.path.exists(pca_features_file):
+        with open(pca_features_file, "rb" ) as file:
+            return pickle.load(file)
+
+    outfile_names = compute_radon_features(human_protein_atlas, ids, save_dir, training=training)
+
+    # Batch transform and save features
+    pca_features = []
+    for i, name in enumerate(outfile_names):
+        features = None
+        with open(name, "rb" ) as file:
+            features = np.array(pickle.load(file))
+
+        transformed = pca_model.transform(features)
+        if i == 0:
+            pca_features = transformed
+        else:
+            pca_features = np.concatenate((pca_features, transformed), axis=0)
+
+    # Save the transformed features
+    with open(pca_features_file, 'wb+') as file:
+        pickle.dump(pca_features, file)
+
+    return pca_features
+
+
+def full_fit_pca_model(human_protein_atlas, ids, d=0.95, save_dir=""):
     assert isinstance(ids, list)
     assert isinstance(human_protein_atlas, Dataset)
 
-    # TODO: remove once done debugging
-    ids = ids[:100]
+    # Check if model saved
+    pca_model_file = os.path.join(save_dir, "pca_model_full"  + str(d))
+    if os.path.exists(pca_model_file):
+        with open(pca_model_file, "rb" ) as file:
+            return pickle.load(file)
 
-    # Spawn process to handle subset of ids extraction
-    processes = []
+    # Get batch radon saved files
+    outfile_names = compute_radon_features(human_protein_atlas, ids, save_dir)
 
+    pca_model = PCA(n_components=d, whiten=True)
+
+    # Load features into one file
+    features = None
+    for i, name in enumerate(outfile_names):
+        batch_features = None
+        with open(name, "rb" ) as file:
+            batch_features = np.array(pickle.load(file))
+
+        if i == 0:
+            features = batch_features
+        else:
+            features = np.concatenate((batch_features), axis=0)
+
+    pca_model.fit(features)
+
+    # Save the fitted model
+    with open(pca_model_file, 'wb+') as file:
+        pickle.dump(pca_model_file, file)
+
+    return pca_model
+
+
+def batch_fit_pca_model(human_protein_atlas, ids, d=1000, save_dir=""):
+    assert isinstance(ids, list)
+    assert isinstance(human_protein_atlas, Dataset)
+
+    # Check if model saved
+    pca_model_file = os.path.join(save_dir, "pca_model_batch"  + str(d))
+    if os.path.exists(pca_model_file):
+        with open(pca_model_file, "rb" ) as file:
+            return pickle.load(file)
+
+    # Get batch radon saved files
+    outfile_names = compute_radon_features(human_protein_atlas, ids, save_dir)
+
+    pca_model = IncrementalPCA(n_components=d, whiten=True)
+
+    # Batch fit new PCA model
+    for name in outfile_names:
+        features = None
+        with open(name, "rb" ) as file:
+            features = pickle.load(file)
+
+        pca_model.partial_fit(features)
+
+    # Save the fitted model
+    with open(pca_model_file, 'wb+') as file:
+        pickle.dump(pca_model_file, file)
+
+    return pca_model
+
+
+def compute_radon_features(human_protein_atlas, ids, save_dir="", sequential=True, memory=False, training=True):
+    assert isinstance(ids, list)
+    assert isinstance(human_protein_atlas, Dataset)
+
+    # Read features directly into memory
+    if memory: 
+        return np.array(radon_features_helper(human_protein_atlas, ids))
+
+    # Write features to split files on disk, return filenames
+    if sequential:
+        return sequential_batch_disk_radon_features(human_protein_atlas, ids, save_dir, training)
+    else:
+        return multiprocessed_batch_disk_radon_features(human_protein_atlas, ids, save_dir, training)
+
+
+def sequential_batch_disk_radon_features(human_protein_atlas, ids, save_dir, batch_size=10, training=True):
+    for i, id_subset in enumerate(np.array_split(ids, batch_size)):
+        filename = os.path.join(save_dir, "radon_features_" + str(i) + ("_train" if training else "_test") + ".radon_data")
+
+        if os.path.exists(filename): # file already exists, don't recompute
+            continue
+
+        radon_features_helper(human_protein_atlas, id_subset, filename, log_progress=True)
+
+    outfile_names = []
+
+    # Verify all files created
+    for i in range(batch_size):
+        filename  = os.path.join(save_dir, "radon_features_" + str(i) + ("_train" if training else "_test") + ".radon_data")
+        
+        assert os.path.exists(filename)
+        assert os.path.getsize(filename) > 0
+
+        outfile_names.append(filename)
+
+    return outfile_names
+
+
+def multiprocessed_batch_disk_radon_features(human_protein_atlas, ids, save_dir, batch_size=30, max_processes=2, training=True):
     # Get CPU count
     try: 
         n_cpus = len(os.sched_getaffinity(0)) # useable cpu count, should work on Unix-base
     except:
         n_cpus = mp.cpu_count() # total cpu count, works on Windows
 
-    for i, id_subset in enumerate(np.array_split(ids, n_cpus)):
-        filename = os.path.join(save_dir, "radon_features_" + str(i) + ".radon_data")
+    # Spawn process to handle subset of ids extraction
+    processes = []
+    for i, id_subset in enumerate(np.array_split(ids, batch_size)):
+        filename = os.path.join(save_dir, "radon_features_" + str(i) + ("_train" if training else "_test") + ".radon_data")
+
+        if os.path.exists(filename): # file already exists, don't recompute
+            continue
         
         p = mp.Process(target=radon_features_helper, args=(human_protein_atlas, id_subset, filename))
         processes.append(p)
         p.start()
-    
-    # Wait for all processes to finish
-    for process in processes:
-        process.join()
 
-    # Combine data from save directory and remove files
-    # Iterates in order to preserve ids ordering
-    combined_features = []
-    for i in range(n_cpus):
-        filename  = os.path.join(save_dir, "radon_features_" + str(i) + ".radon_data")
+        if len(processes) % min(n_cpus, max_processes) == 0: # wait for oldest process to finish before spawning a new one
+            processes[0].join()
+            processes.pop(0)
+    
+    # Wait for all remaining processes to finish
+    for p in processes:
+        p.join()
+
+    outfile_names = []
+
+    # Verify all files created
+    for i in range(batch_size):
+        filename  = os.path.join(save_dir, "radon_features_" + str(i) + ("_train" if training else "_test") + ".radon_data")
         
-        assert os.path.isfile(filename)
+        assert os.path.exists(filename)
         assert os.path.getsize(filename) > 0
 
-        with open(filename, "rb" ) as file:
-            combined_features = combined_features + pickle.load(file)
-        os.remove(filename)
+        outfile_names.append(filename)
 
-    combined_features = np.array(combined_features)
-
-    print(combined_features.shape)
-    print(type(combined_features))
-
-    # Save combined results
-    combined_filename = os.path.join(save_dir, "radon_features_combined")
-    pickle.dump(combined_features, open(combined_filename, 'wb+'))
-
-    return combined_features
+    return outfile_names
 
 
-def radon_features_helper(human_protein_atlas, ids, save_file):
+def radon_features_helper(human_protein_atlas, ids, save_file="", log_progress=False):
     assert isinstance(human_protein_atlas, Dataset)
+
+    if os.path.exists(save_file):
+        with open(save_file, "rb" ) as file:
+            return pickle.load(file)
 
     extracted_features = []
 
@@ -110,17 +227,21 @@ def radon_features_helper(human_protein_atlas, ids, save_file):
 
         extracted_features.append(sample_features)
 
-        if i % 50 == 0: 
+        if log_progress and i % 100 == 0: 
             print("Progress tick, processed images = ", i, "pid = ", os.getpid())
 
-    pickle.dump(extracted_features, open(save_file, 'wb+'))
+    if save_file != "":
+        with open(save_file, 'wb+') as file:
+            pickle.dump(extracted_features, file)
+    
+    return extracted_features
 
 
-def get_radon_transform(img, n_beams=64):
+def get_radon_transform(img, n_beams=64, angle_step=3):
     # Scale image for desired beam count
     scale = n_beams / np.ceil(np.sqrt(2) * max(img.shape))
     img = rescale(img, scale=scale, mode="reflect")
 
-    sinogram = radon(img, theta=np.arange(360), circle=False)
+    sinogram = radon(img, theta=np.arange(0, 360, angle_step), circle=False)
 
     return sinogram.flatten()

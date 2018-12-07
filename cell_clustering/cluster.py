@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-File: models
+File: cluster
 Date: 11/16/18 
 Author: Robert Neff (rneff@stanford.edu)
 """
@@ -23,8 +23,10 @@ from HumanProteinAtlas import Dataset, Sample
 from partitions import Split, partitions
 from preprocessing import preprocess_dataset
 from deep_model.config import Configuration
-from feature_extraction import extract_features
+from feature_extraction import batch_fit_pca_model, batch_disk_pca_transform
 from evaluation.metrics import plot_histogram
+
+from cell_clustering.predict import predict_sample_prob
 
 
 class ClusteringMethod(Enum):
@@ -67,62 +69,74 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    n_cells = 27 # change to 4
-    n_components = 2 # change to 1000
+    n_clusters = 27
 
-    # Extract
+    # Extract / Fit
 
-    logger.info("Loading extracted features from file.")
-    X = extract_features(human_protein_atlas, partitions.train, n_components, args.features_dir)
+    pca_model = batch_fit_pca_model(human_protein_atlas, partitions.train, save_dir=args.features_dir)
 
-    # Train / Fit
+    # Transform
+
+    pca_features = batch_disk_pca_transform(pca_model, args.features_dir)
+
+    # Clear some memory
+    pca_model = None
+
+    # Train GMM model
 
     logger.info("Fitting cell clusters...")
     model = None
-    if os.path.isfile(args.model_file):
+    if os.path.exists(args.model_file):
         logger.info("Loading model from file.")
         with open(args.model_file, "rb") as file:
             model = pickle.load(file)
     else :
-        model = train_gmm(X, n_cells)
+        model = train_gmm(pca_features, n_clusters)
         logger.info("Saving model.")
         pickle.dump(model, open(args.model_file, 'wb+'))
 
-    # Predict
+    # Predict cluster probabilities
 
     logger.info("Assigning training set clusters...")
     assignments = None
-    if os.path.isfile(args.assignments_file):
+    if os.path.exists(args.assignments_file):
         logger.info("Loading model from file.")
         with open(args.assignments_file, "rb") as file:
             assignments = pickle.load(file)
     else :
-        assignments = assign_samples(partitions.train, model, X)
+        assignments = assign_samples(partitions.train, model, pca_features)
         logger.info("Saving cluster assignments")
         pickle.dump(assignments, open(args.assignments_file, 'wb+'))
 
+    # TODO: update to fit with new changes
 
+    # Clustering check
 
-    # DEBUG-testing code
-    predictions = model.predict(X)
-    posterior_probs = model.predict_proba(X)
+    # Get PCA top two features
+    # X = None
+    # X = extract_features(human_protein_atlas, partitions.train, 2, args.features_dir)
 
-    predictions2 = train_kmeans(X, n_cells).predict(X)
+    # predictions = train_gmm(X, n_clusters).predict(X)
 
-    color_range = cm.rainbow(np.linspace(0, 1, n_cells))
-    colors = [color_range[predictions[i]] for i in range(len(predictions))]
-    plt.scatter(X[:, 0], X[:, 1], c=colors)
-    plt.xlabel("x1")
-    plt.ylabel("x2")
-    plt.show()
+    # # Plot clusters in 2D
 
-    counts = np.zeros((2, n_cells))
-    for i in range(len(predictions)):
-        counts[0, predictions[i]] += 1
-        counts[1, predictions2[i]] += 1
+    # color_range = cm.rainbow(np.linspace(0, 1, n_clusters))
+    # colors = [color_range[predictions[i]] for i in range(len(predictions))]
+    # plt.scatter(X[:, 0], X[:, 1], c=colors)
+    # plt.xlabel("x1")
+    # plt.ylabel("x2")
+    # plt.show()
+
+    # # Compare counts in clusters to Kmeans
+    # predictions_kmeans = train_kmeans(X, n_clusters).predict(X)
+
+    # counts = np.zeros((2, n_cells))
+    # for i in range(len(predictions)):
+    #     counts[0, predictions[i]] += 1
+    #     counts[1, predictions_kmeans[i]] += 1
     
-    plot_histogram(counts, np.arange(n_cells), ["GMM", "KMeans"], "Cell clusters", "Cluster index", \
-        "Number of samples", "outputs/cluster_counts.png")
+    # plot_histogram(counts, np.arange(n_cells), ["GMM", "KMeans"], "Cell clusters", "Cluster index", \
+    #     "Number of samples", "outputs/cluster_counts.png")
 
     logger.info("Exiting.")
 
