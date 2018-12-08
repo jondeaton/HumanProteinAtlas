@@ -9,6 +9,8 @@ from enum import Enum
 import numpy as np
 
 from skimage.feature import greycomatrix, greycoprops, ORB, local_binary_pattern, hog
+from skimage.filters import gabor_kernel
+from scipy import ndimage as ndi
 from scipy.fftpack import dct
 import cv2
 
@@ -23,6 +25,7 @@ class Feature(Enum):
     lbp = 4
     orb = 5
     hog = 6
+    gabor = 7
 
 
 def extract_features(images, method=Feature.drt):
@@ -45,6 +48,8 @@ def get_features(image, method=Feature.drt): # TODO: add additional arguments ..
         return get_orb_features(image)
     elif method == Feature.hog:
         return get_hog_features(image)
+    elif method == Feature.gabor:
+        return get_gabor_features(image)
     else:
         raise Exception("Unhandled feature extraction method.")
 
@@ -169,7 +174,7 @@ def get_keypoints(image, n_keypoints):
 """
 Get HoG (Histogram of Gradients) features.
 
-Lower hessian thershold results in more features.
+Smaller pixels_per_cell, larger cells_per_block increases features size.
 """
 def get_hog_features(image):
     reshaped_image = np.swapaxes(image, 0, 2)
@@ -179,3 +184,30 @@ def get_hog_features(image):
     # feature_visualization.show_hog_features(reshaped_image)
 
     return features
+
+
+import matplotlib.pyplot as plt
+
+"""
+Get Gabor filter/kernel features.
+
+Captures magnitude at different orientations and scales. Good at edge detection.
+
+Check this out: https://stackoverflow.com/questions/20608458/gabor-feature-extraction
+
+
+Probably pass on this one.
+"""
+def get_gabor_features(image, frequency=0.2, theta=0, sigma_x=1, sigma_y=1):
+
+    kernel = np.real(gabor_kernel(frequency, theta=theta,
+                                          sigma_x=sigma_x, sigma_y=sigma_y))
+    filtered = ndi.convolve(image, kernel, mode='wrap')
+
+    # TODO: decide if going to try this
+    # need more kernels and to choose some features out of huge set
+
+    plt.imshow(filtered)
+    plt.show()
+
+    raise Exception("Not yet implemented.")
