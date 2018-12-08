@@ -9,7 +9,6 @@ import os
 import sklearn
 import numpy as np
 
-import scikitplot as skplt
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from sklearn.metrics import roc_curve, auc

@@ -41,23 +41,25 @@ def f1_cost(y_prob, y_true):
 
 
 def inception_module(input, filters, kernels):
-    with tf.variable_scope("inception"):
+    with tf.variable_scope("Inception"):
         l = input
         convs = list()
         for kernel in kernels:
-            l = conv_relu(l, filters, kernel)
+            l = ConvReLu(l, filters, kernel)
             convs.append(l)
         return tf.concat(values=convs, axis=1, name="concat")
 
 
-def conv_relu(input, filters, kernel):
-    kernel_initializer = tf.truncated_normal_initializer(stddev=5e-2, dtype=tf.float32)
-    bias_initializer = tf.zeros_initializer(dtype=tf.float32)
-    l = tf.layers.conv2d(input,
+def ConvReLu(input, filters, kernel):
+    with tf.variable_scope("ConvReLu"):
+        kernel_initializer = tf.truncated_normal_initializer(stddev=5e-2, dtype=tf.float32)
+        bias_initializer = tf.zeros_initializer(dtype=tf.float32)
+
+        return tf.layers.conv2d(input,
                          filters=filters, kernel_size=kernel, strides=(1, 1), padding='same',
-                         data_format='channels_first', activation=None, use_bias=True,
+                         data_format='channels_first', activation='relu', use_bias=True,
                          kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)
-    return tf.nn.relu(l)
+
 
 def MaxPooling2D(x):
     return tf.layers.max_pooling2d(x, pool_size=(2, 2), strides=2, data_format='channels_first')

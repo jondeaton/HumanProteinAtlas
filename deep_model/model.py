@@ -132,48 +132,63 @@ class InceptionBased(object):
     def __init__(self, params):
         self.params = params
 
+        self.variables_to_save = list()
+
     def __call__(self, input, labels, is_training):
 
         def BatchNormalization(input):
-            return tf.layers.batch_normalization(input, axis=-1, training=is_training)
+            bn = tf.layers.batch_normalization(input, axis=-1, training=is_training)
+            assert isinstance(bn, tf.keras.layers.BatchNormalization)
 
-        def batch_conv_relu(input, filters):
-            x = BatchNormalization(input)
-            return conv_relu(x, filters, (3, 3))
+            self.variables_to_save.append(bn.moving_mean)
+            self.variables_to_save.append(bn.moving_variance)
 
-        def batch_pool_drop_conv_relu(input, filters):
-            x = BatchNormalization(input)
-            x = MaxPooling2D(x)
-            x = tf.layers.dropout(x, rate=self.params.dropout_rate, training=is_training)
-            return conv_relu(x, filters, (3, 3))
+            return bn
 
-        l = batch_conv_relu(input, 8)
-        l = batch_conv_relu(l, 8)
-        l = batch_conv_relu(l, 16)
+        def ComplexBlock(input, filters):
+            with tf.variable_scope("ComplexBlock"):
+                x = BatchNormalization(input)
+                x = MaxPooling2D(x)
+                x = tf.layers.dropout(x, rate=self.params.dropout_rate, training=is_training)
+                return ConvReLu(x, filters, (3, 3))
 
-        l = BatchNormalization(l)
-        l = MaxPooling2D(l)
+        def BasicBlock(input, filters):
+            with tf.variable_scope("BasicBlock"):
+                intermediate = BatchNormalization(input)
+                return ConvReLu(intermediate, filters, (3, 3))
 
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        with tf.variable_scope("Basic"):
+            l = BasicBlock(input, 8)
+            l = BasicBlock(l, 8)
+            l = BasicBlock(l, 16)
 
-        l = inception_module(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
-        l = BatchNormalization(l)
+        with tf.variable_scope("Intermediate"):
+            l = BatchNormalization(l)
+            l = MaxPooling2D(l)
 
-        l = batch_pool_drop_conv_relu(l, 32)
-        l = batch_pool_drop_conv_relu(l, 64)
-        l = batch_pool_drop_conv_relu(l, 128)
+            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
 
-        l = BatchNormalization(l)
-        l = MaxPooling2D(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+            l = inception_module(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
+            l = BatchNormalization(l)
+
+        with tf.variable_scope("Complex"):
+            l = ComplexBlock(l, 32)
+            l = ComplexBlock(l, 64)
+            l = ComplexBlock(l, 128)
+
+            l = BatchNormalization(l)
+            l = MaxPooling2D(l)
+            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
 
         l = tf.layers.flatten(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
-        l = tf.layers.dense(l, len(Organelle), activation='relu')
+        
+        with tf.variable_scope("FinalDense"):
+            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+            l = tf.layers.dense(l, len(Organelle), activation='relu')
 
-        l = BatchNormalization(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
-        logits = tf.layers.dense(l, len(Organelle), activation=None)
-        y_prob = tf.sigmoid(logits)
+            l = BatchNormalization(l)
+            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+            logits = tf.layers.dense(l, len(Organelle), activation=None)
+            y_prob = tf.sigmoid(logits)
 
         return y_prob, logits, f1_cost(y_prob, labels)
