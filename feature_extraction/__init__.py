@@ -9,6 +9,8 @@ from enum import Enum
 import numpy as np
 
 from skimage.feature import greycomatrix, greycoprops, ORB, local_binary_pattern, hog
+from skimage.filters import gabor_kernel
+from scipy import ndimage as ndi
 from scipy.fftpack import dct
 import cv2
 
@@ -23,6 +25,7 @@ class Feature(Enum):
     lbp = 4
     orb = 5
     hog = 6
+    gabor = 7
 
 
 def extract_features(images, method=Feature.drt):
@@ -45,6 +48,8 @@ def get_features(image, method=Feature.drt): # TODO: add additional arguments ..
         return get_orb_features(image)
     elif method == Feature.hog:
         return get_hog_features(image)
+    elif method == Feature.gabor:
+        return get_gabor_features(image)
     else:
         raise Exception("Unhandled feature extraction method.")
 
@@ -53,8 +58,12 @@ def get_features(image, method=Feature.drt): # TODO: add additional arguments ..
 Get DRT (discrete radon transform) features.
 """
 def get_radon_features(image):
-    drt = get_radon_transform(image)
-    return drt
+    features = []
+
+    for layer in range(len(image)):
+        features.append(get_radon_transform(image[layer]).flatten())
+
+    return np.concatenate(features)
 
 
 """
@@ -169,28 +178,39 @@ def get_keypoints(image, n_keypoints):
 """
 Get HoG (Histogram of Gradients) features.
 
-Lower hessian thershold results in more features.
+Smaller pixels_per_cell, larger cells_per_block increases features size.
 """
 def get_hog_features(image):
-    pass
+    reshaped_image = np.swapaxes(image, 0, 2)
 
-    # reshape
+    features = hog(reshaped_image, orientations=8, pixels_per_cell=(16, 16), cells_per_block=(2, 2), multichannel=True)
 
-    # TODO: in progress, rnef fworking here
+    # feature_visualization.show_hog_features(reshaped_image)
 
-    # fd, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),
-    #                 cells_per_block=(1, 1), visualize=True, multichannel=True)
+    return features
 
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=True)
 
-    # ax1.axis('off')
-    # ax1.imshow(image, cmap=plt.cm.gray)
-    # ax1.set_title('Input image')
+import matplotlib.pyplot as plt
 
-    # # Rescale histogram for better display
-    # hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
+"""
+Get Gabor filter/kernel features.
 
-    # ax2.axis('off')
-    # ax2.imshow(hog_image_rescaled, cmap=plt.cm.gray)
-    # ax2.set_title('Histogram of Oriented Gradients')
-    # plt.show()
+Captures magnitude at different orientations and scales. Good at edge detection.
+
+Check this out: https://stackoverflow.com/questions/20608458/gabor-feature-extraction
+
+Probably pass on this one.
+"""
+def get_gabor_features(image, frequency=0.2, theta=0, sigma_x=1, sigma_y=1):
+
+    kernel = np.real(gabor_kernel(frequency, theta=theta,
+                                          sigma_x=sigma_x, sigma_y=sigma_y))
+    filtered = ndi.convolve(image, kernel, mode='wrap')
+
+    # TODO: decide if going to try this
+    # need more kernels and to choose some features out of huge set
+
+    plt.imshow(filtered)
+    plt.show()
+
+    raise Exception("Not yet implemented.")
