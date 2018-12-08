@@ -61,7 +61,7 @@ def get_radon_features(image):
     features = []
 
     for layer in range(len(image)):
-        features.append(get_radon_transform(image[layer]))
+        features.append(get_radon_transform(image[layer]).flatten())
 
     return np.concatenate(features)
 
