@@ -51,14 +51,14 @@ def inception_module(input, filters, kernels):
 
 
 def ConvReLu(input, filters, kernel):
-    with tf.variable_scope("ConvReLu"):
-        kernel_initializer = tf.truncated_normal_initializer(stddev=5e-2, dtype=tf.float32)
-        bias_initializer = tf.zeros_initializer(dtype=tf.float32)
+    # with tf.variable_scope("ConvReLu"):
+    kernel_initializer = tf.truncated_normal_initializer(stddev=5e-2, dtype=tf.float32)
+    bias_initializer = tf.zeros_initializer(dtype=tf.float32)
 
-        return tf.layers.conv2d(input,
-                         filters=filters, kernel_size=kernel, strides=(1, 1), padding='same',
-                         data_format='channels_first', activation='relu', use_bias=True,
-                         kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)
+    return tf.layers.conv2d(input,
+                     filters=filters, kernel_size=kernel, strides=(1, 1), padding='same',
+                     data_format='channels_first', activation='relu', use_bias=True,
+                     kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)
 
 
 def MaxPooling2D(x):

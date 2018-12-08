@@ -45,9 +45,16 @@ class Params(object):
 
     def override(self, args):
         for attr in vars(args):
-            if getattr(self, attr) is not None:
+            if hasattr(self, attr):
                 value = getattr(args, attr)
-                setattr(self, attr, value)
+                if value is None: continue
+                self[attr] = value
+
+    def __getitem__(self, item):
+        return self.dict[item]
+
+    def __setitem__(self, key, value):
+        self.dict[key] = value
 
     @property
     def dict(self):

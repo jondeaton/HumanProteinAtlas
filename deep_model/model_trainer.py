@@ -58,7 +58,7 @@ class ModelTrainer(object):
         self.logger.info("Instantiating model...")
 
         self.is_training = tf.placeholder(tf.bool)
-        output, logits, self.cost = self.model(input, labels, self.is_training)
+        output, self.cost = self.model(input, labels, self.is_training)
         output = tf.identity(output, "output")
 
         self._define_logging_metrics(output, labels)
@@ -80,13 +80,13 @@ class ModelTrainer(object):
 
             self.train_handle = self.sess.run(self.train_iterator.string_handle())
 
-            self.saver = tf.train.Saver(save_relative_paths=True)
+            vars_to_save = tf.trainable_variables() + self.model.variables_to_save
+            self.saver = tf.train.Saver(vars_to_save, save_relative_paths=True)
             self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
 
             if self.restore:
                 self.logger.info("Restoring model from checkpoint: %s" % self.restore_model_path)
                 self.saver.restore(self.sess, tf.train.latest_checkpoint(self.restore_model_path))
-                graph = tf.get_default_graph()
                 self.logger.info("Model restored.")
 
             # Training epochs
