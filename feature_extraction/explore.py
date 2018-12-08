@@ -27,15 +27,26 @@ from feature_extraction import get_features
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
+from feature_extraction import Feature
+import multiprocessing as mp
 
 def explore_features(X):
     pca = PCA(n_components=2, whiten=True)
     principalComponents = pca.fit_transform(X)
 
     plt.figure()
-    plt.scatter(principalComponents)
+    plt.scatter(principalComponents[:, 0], principalComponents[:, 1])
     plt.show()
 
+
+def _get_ft(t):
+    return get_ft(*t)
+
+
+def get_ft(dataset, id):
+    logger.info("Extracting features for: %s" % id)
+    img = dataset[id].combined((Color.blue, Color.yellow, Color.red))
+    return get_features(img, method=Feature.dct)
 
 
 def main():
@@ -54,17 +65,20 @@ def main():
     else:
         output_dir = None
 
-    dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=False)
+    if not os.path.exists("X.npy"):
+        dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=True)
+        experimental_ids = np.random.choice(partitions.train, args.num_examples, replace=False)
 
-    experimental_ids = np.random.choice(partitions.train, args.num_examples, replace=False)
+        arguments = [(dataset, id) for id in experimental_ids]
+        pool = mp.Pool(8)
+        features = pool.map(_get_ft, arguments)
 
-    features = list()
-    for id in experimental_ids:
-        img = dataset[id].combined((Color.blue, Color.yellow, Color.red))
-        fts = get_features(img)
-        features.append(fts)
+        X = np.vstack(features)
 
-    X = np.concatenate(features, axis=0)
+        np.save("X", X)
+    else:
+        X = np.load("X.npy")
+
     explore_features(X)
 
 

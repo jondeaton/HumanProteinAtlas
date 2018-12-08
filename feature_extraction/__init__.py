@@ -78,7 +78,7 @@ n_block_features must be a square number.
 
 Resulting features size is: (512 / block_size)^2 * block_features_width^2 * 3
 """
-def get_dct_features(image, block_size=128, block_features_width=16):
+def get_dct_features(image, block_size=256, block_features_width=8):
     n_blocks = int(image.shape[1] / block_size)
 
     features = []
