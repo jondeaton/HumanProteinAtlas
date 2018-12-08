@@ -58,8 +58,12 @@ def get_features(image, method=Feature.drt): # TODO: add additional arguments ..
 Get DRT (discrete radon transform) features.
 """
 def get_radon_features(image):
-    drt = get_radon_transform(image)
-    return drt
+    features = []
+
+    for layer in range(len(image)):
+        features.append(get_radon_transform(image[layer]))
+
+    return np.concatenate(features)
 
 
 """
@@ -194,7 +198,6 @@ Get Gabor filter/kernel features.
 Captures magnitude at different orientations and scales. Good at edge detection.
 
 Check this out: https://stackoverflow.com/questions/20608458/gabor-feature-extraction
-
 
 Probably pass on this one.
 """
