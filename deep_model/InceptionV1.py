@@ -9,9 +9,7 @@ for ~ 30 hours on AWS. It was trained with images
 
 """
 
-import numpy as np
 import tensorflow as tf
-
 from HumanProteinAtlas import Organelle
 
 

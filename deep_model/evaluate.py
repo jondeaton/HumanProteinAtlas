@@ -134,9 +134,12 @@ def main():
         logger.error("No such file: %s" % model_file)
         return
 
-    output_dir = os.path.expanduser(args.output)
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    if args.output is None:
+        output_dir = save_path
+    else:
+        output_dir = os.path.expanduser(args.output)
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
 
     if args.scale:
         logger.info("Images are NOT rescaled")
@@ -177,7 +180,7 @@ def parse_args():
     input_group.add_argument("--model", required=True, help="File to save trained model in")
 
     output_group = parser.add_argument_group("Output")
-    output_group.add_argument("-o", "--output", required=True, help="Output directory to store plots")
+    output_group.add_argument("-o", "--output", required=False, help="Output directory to store plots")
 
     options_group = parser.add_argument_group("Options")
     options_group.add_argument("--config", required=False, type=str, help="Configuration file")
