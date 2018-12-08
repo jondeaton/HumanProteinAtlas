@@ -6,16 +6,19 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 """
 import os
 import json
+import argparse
 from enum import Enum
 
+
 class loss(Enum):
-    dice = 1
     cross_entropy = 2
+
 
 dir_name = os.path.dirname(__file__)
 default_params_file = os.path.join(dir_name, "params.json")
 
-class Params():
+
+class Params(object):
     """
     Class that loads hyper-parameters from a json file.
     Example:
@@ -39,6 +42,12 @@ class Params():
         with open(json_path) as f:
             params = json.load(f)
             self.__dict__.update(params)
+
+    def override(self, args):
+        for attr in vars(args):
+            if getattr(self, attr) is not None:
+                value = getattr(args, attr)
+                setattr(self, attr, value)
 
     @property
     def dict(self):
@@ -108,7 +117,6 @@ class Params():
     @property
     def shuffle_buffer_size(self):
         return self.dict["shuffle_buffer_size"]
-
 
 
 def save_dict_to_json(d, json_path):

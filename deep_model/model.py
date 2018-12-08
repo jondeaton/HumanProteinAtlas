@@ -8,7 +8,6 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 import numpy as np
 import tensorflow as tf
 
-
 from HumanProteinAtlas import Organelle
 from deep_model.ops import *
 

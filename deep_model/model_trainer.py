@@ -26,20 +26,27 @@ from preprocessing import load_dataset, augment_dataset, preprocess_dataset
 
 class ModelTrainer(object):
 
-    def __init__(self, model, config, params, logger):
+    def __init__(self, model, config, params, logger, restore_model_path=None):
+        assert isinstance(logger, logging.Logger)
+        assert isinstance(config, Configuration)
+        assert isinstance(params, Params)
+
         self.model = model
         self.config = config
         self.params = params
         self.logger = logger
 
-        self.tensorboard_dir = os.path.join(config.tensorboard_dir, self._get_job_name())
+        self.restore_model_path = restore_model_path
+        self.restore = restore_model_path is not None
 
-        self.epoch = 0
+        self.tensorboard_dir = os.path.join(config.tensorboard_dir, self._get_job_name())
 
         self.logging_metrics = dict()
         self.tensorboard_metrics = dict()
 
         tf.random.set_random_seed(params.seed)
+
+        self.epoch = 0
 
     def train(self, train_dataset, test_dataset):
         self._setup_dataset_iterators(train_dataset, test_dataset)
@@ -47,7 +54,7 @@ class ModelTrainer(object):
         input, labels = self.iterator.get_next()
         input = tf.identity(input, "input") # name the input tensor
 
-        # Create the model's computation graph and cost function
+        # Create the model's computation graph
         self.logger.info("Instantiating model...")
 
         self.is_training = tf.placeholder(tf.bool)
@@ -60,10 +67,10 @@ class ModelTrainer(object):
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
         self.optimizer = self._get_optimizer(self.cost)
 
-        self.logger.info("Training...")
         init = tf.global_variables_initializer()
         init_l = tf.local_variables_initializer()
 
+        self.logger.debug("Creating TensorFlow session")
         with tf.Session() as self.sess:
             self._configure_tensorboard()
 
@@ -76,7 +83,14 @@ class ModelTrainer(object):
             self.saver = tf.train.Saver(save_relative_paths=True)
             self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
 
+            if self.restore:
+                self.logger.info("Restoring model from checkpoint: %s" % self.restore_model_path)
+                self.saver.restore(self.sess, tf.train.latest_checkpoint(self.restore_model_path))
+                graph = tf.get_default_graph()
+                self.logger.info("Model restored.")
+
             # Training epochs
+            self.logger.info("Training...")
             for self.epoch in range(self.params.epochs):
                 self.sess.run(self.train_iterator.initializer)
 
@@ -181,13 +195,13 @@ class ModelTrainer(object):
 
     def _get_optimizer(self, cost):
         if self.params.adam:
-            # With Adam optimization: no learning rate decay
+            # with Adam optimization: no learning rate decay
             learning_rate = tf.constant(self.params.learning_rate, dtype=tf.float32)
             sgd = tf.train.AdamOptimizer(learning_rate=learning_rate, name="Adam")
 
         else:
 
-            # Set up Stochastic Gradient Descent Optimizer with exponential learning rate decay
+            # Stochastic Gradient Descent Optimizer with exponential learning rate decay
             learning_rate = tf.train.exponential_decay(self.params.learning_rate,
                                                        global_step=self.global_step,
                                                        decay_steps=100000,
@@ -197,7 +211,7 @@ class ModelTrainer(object):
 
             sgd = tf.train.GradientDescentOptimizer(learning_rate=learning_rate, name="SGD")
 
-        # Update the moving mean/variance with each step for Batch Normalization
+        # this incantation ensures the BatchNorm moving mean/variance are updated with each step
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             optimizer = sgd.minimize(cost, name='optimizer', global_step=self.global_step)
