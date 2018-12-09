@@ -12,7 +12,7 @@ from partitions import Split, partitions
 
 
 def load_dataset(dataset, split, classes=None):
-    """ Loads a dataset into a TensorFlow Dataset
+    """ Loads a dataset into a TensorFlow Dataset object
 
     :param dataset: HumanProteinAtlas dataset
     :param split: which partition to use

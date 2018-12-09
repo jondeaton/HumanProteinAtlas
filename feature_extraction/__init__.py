@@ -39,7 +39,15 @@ def extract_features(images, method=Feature.drt):
     return np.concatenate(features, axis=0)
 
 
-def get_features(image, method=Feature.drt): # TODO: add additional arguments ...
+def get_features(image, method=Feature.drt):
+    """
+    TODO: add additional arguments ...
+
+    :param image:
+    :param method:
+    :return:
+    """
+
     if method == Feature.drt:
         return get_radon_features(image)
     elif method == Feature.surf:
