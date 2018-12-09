@@ -5,19 +5,20 @@ Date: 10/19/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
-import os
-import sys
-import argparse
-import logging
+import os, sys
+import argparse, logging
 
-import numpy as np
 import tensorflow as tf
 
-import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
-from deep_model.model import BaselineModel, InceptionBased
 from deep_model.model_trainer import ModelTrainer
+
+
+from deep_model.InceptionModel import InceptionModel
+from deep_model.BaselineModel import BaselineModel
+from deep_model.InceptionV1 import InceptionV1
+
 
 from HumanProteinAtlas import Dataset
 from partitions import Split
@@ -59,13 +60,15 @@ def main():
     if args.config is not None:
         config = Configuration(args.config)
     else:
-        config = Configuration() # use default
+        config = Configuration()  # use default
 
     global params
     if args.params is not None:
         params = Params(args.params)
     else:
         params = Params()
+
+    params.override(args)
 
     # Set random seed for reproducible results
     tf.set_random_seed(params.seed)
@@ -83,9 +86,8 @@ def main():
     logger.debug("Num epochs: %s" % params.epochs)
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
-    # model = HPA_CNN_Model(params)
-    model = InceptionBased(params)
-    model_trainer = ModelTrainer(model, config, params, logger)
+    model = InceptionV1(params)
+    model_trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
     model_trainer.train(train_dataset, test_dataset)
 
     logger.info("Exiting.")
@@ -95,22 +97,28 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train human protein atlas model",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    info_options = parser.add_argument_group("Info")
-    info_options.add_argument("-params", "--params", type=str, help="Hyperparameters json file")
-    info_options.add_argument("--config", required=False, type=str, help="Configuration file")
+    input_groups = parser.add_argument_group("Input")
+    input_groups.add_argument('--path', help="Dataset input file")
 
-    input_options = parser.add_argument_group("Input")
-    input_options.add_argument('--path', help="Dataset input file")
+    output_group = parser.add_argument_group("Output")
+    output_group.add_argument("--model-file", help="File to save trained model in")
 
-    output_options = parser.add_argument_group("Output")
-    output_options.add_argument("--model-file", help="File to save trained model in")
+    info_group = parser.add_argument_group("Info")
+    info_group.add_argument("-params", "--params", type=str, help="Hyperparameters json file")
+    info_group.add_argument("--config", required=False, type=str, help="Configuration file")
 
-    tensorboard_options = parser.add_argument_group("TensorBoard")
-    tensorboard_options.add_argument("--tensorboard", help="TensorBoard directory")
-    tensorboard_options.add_argument("--log-frequency", help="Logging frequency")
+    restore_group = parser.add_argument_group("Restore")
+    restore_group.add_argument("--restore", type=str, required=False, help="Model to restore and continue training")
 
-    logging_options = parser.add_argument_group("Logging")
-    logging_options.add_argument('--log',
+    training_group = parser.add_argument_group("Training")
+    training_group.add_argument("--epochs", type=int, required=False, help="Number of epochs to train")
+
+    tensorboard_group = parser.add_argument_group("TensorBoard")
+    tensorboard_group.add_argument("--tensorboard", help="TensorBoard directory")
+    tensorboard_group.add_argument("--log-frequency", help="Logging frequency")
+
+    logging_group = parser.add_argument_group("Logging")
+    logging_group.add_argument('--log',
                                  dest="log_level",
                                  choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                                  default="DEBUG", help="Logging level")

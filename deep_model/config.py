@@ -28,14 +28,8 @@ class Configuration(object):
         self.tensorboard_dir = os.path.expanduser(c["TensorFlow"]["tensorboard-dir"])
         self.tensorboard_freq = int(c["TensorFlow"]["log-frequency"])
 
-    def overload(self, args):
-        assert args is not None
-
-        if args.brats_directory is not None:
-            self.dataset_directory = args.input_directory
-
-        if args.model_file is not None:
-            self.model_file = args.model_file
-
-        if args.tensorboard is not None:
-            self.tensorboard_dir = args.tensorboard
+    def override(self, args):
+        for attr in vars(args):
+            if getattr(self, attr) is not None:
+                value = getattr(args, attr)
+                setattr(self, attr, value)

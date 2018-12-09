@@ -134,16 +134,21 @@ def main():
         logger.error("No such file: %s" % model_file)
         return
 
-    output_dir = os.path.expanduser(args.output)
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    if args.output is None:
+        output_dir = save_path
+    else:
+        output_dir = os.path.expanduser(args.output)
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
 
-    if args.scale:
-        logger.info("Images are NOT rescaled")
+    if args.raw:
+        logger.warning("Raw unscaled images are used")
     else:
         logger.info("Images are rescaled between 0 and 1")
 
-    dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=args.scale)
+    scale = not args.raw
+    dataset = HumanProteinAtlas.Dataset(config.dataset_directory, scale=scale)
+
     run_model = None
     if args.recompute:
         logger.info("Restoring model...")
@@ -177,12 +182,12 @@ def parse_args():
     input_group.add_argument("--model", required=True, help="File to save trained model in")
 
     output_group = parser.add_argument_group("Output")
-    output_group.add_argument("-o", "--output", required=True, help="Output directory to store plots")
+    output_group.add_argument("-o", "--output", required=False, help="Output directory to store plots")
 
     options_group = parser.add_argument_group("Options")
     options_group.add_argument("--config", required=False, type=str, help="Configuration file")
     options_group.add_argument("-params", "--params", type=str, help="Hyperparameters json file")
-    options_group.add_argument("--scale", action='store_true', help="Scale the images down")
+    options_group.add_argument("--raw", action='store_true', help="Use raw (unscaled) images")
     options_group.add_argument("--recompute", action='store_true', help="Recompute predictions")
 
     logging_options = parser.add_argument_group("Logging")
