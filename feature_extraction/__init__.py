@@ -16,6 +16,8 @@ import cv2
 
 from feature_extraction.drt import get_radon_transform
 import feature_extraction.feature_visualization
+import feature_extraction.radonCDT as RCDT
+from preprocessing.preprocess import get_binary_image
 
 
 class Feature(Enum):
@@ -26,6 +28,7 @@ class Feature(Enum):
     orb = 5
     hog = 6
     gabor = 7
+    drt_cdt = 8
 
 
 def extract_features(images, method=Feature.drt):
@@ -34,6 +37,7 @@ def extract_features(images, method=Feature.drt):
         features.append(get_features(image, method))
     return np.concatenate(features, axis=0)
 
+from skimage.transform import rescale
 
 def get_features(image, method=Feature.drt): # TODO: add additional arguments ...
     if method == Feature.drt:
@@ -50,6 +54,8 @@ def get_features(image, method=Feature.drt): # TODO: add additional arguments ..
         return get_hog_features(image)
     elif method == Feature.gabor:
         return get_gabor_features(image)
+    elif method == Feature.drt_cdt:
+        return get_radon_cdt_features(image)
     else:
         raise Exception("Unhandled feature extraction method.")
 
@@ -66,18 +72,32 @@ def get_radon_features(image):
     return np.concatenate(features)
 
 
+def get_radon_cdt_features(image):
+    features = []
+
+    image = get_binary_image(image)
+
+    rcdt=RCDT.RadonCDT()
+
+    for layer in range(len(image)):
+        scale = 64 / np.ceil(np.sqrt(2) * max(image[layer].shape))
+        img = rescale(image[layer], scale=scale, mode="reflect")
+        features.append(rcdt.transform(img).flatten())
+
+    return np.concatenate(features)
+
+
 """
 Get SURF (Speeded-Up Robust Features, i.e. fast SIFT) features.
 
 Lower hessian thershold results in more features.
 """
 def get_surf_features(image, hessian_threshold=500):
-    pass
+    raise Exception("Not yet implemented.")
+    # surf = cv2.xfeatures2d.SURF_create(hessian_threshold)
+    # kp, des = surf.detectAndCompute(image[0] / 255, None)
 
-    # TODO: not working, FIXME!
-
-    # surf = cv2.SURF(n_components)
-    # key_points, descriptors = surf.detectAndCompute(image, None)
+    # print(len(key_points))
 
 
 """
@@ -87,7 +107,7 @@ n_block_features must be a square number.
 
 Resulting features size is: (512 / block_size)^2 * block_features_width^2 * 3
 """
-def get_dct_features(image, block_size=256, block_features_width=8):
+def get_dct_features(image, block_size=128, block_features_width=16):
     n_blocks = int(image.shape[1] / block_size)
 
     features = []
@@ -112,7 +132,7 @@ Resulting features size is: neighbors * radius
 Note: gray-scale and rotation invariant. Should also
 be translation invariant if neighbor radius is small.
 """
-def get_local_binary_patterns(image, neighbors=8, radius=3):
+def get_local_binary_patterns(image, neighbors=14, radius=4):
     numPoints = neighbors * radius
 
     features = []
@@ -121,7 +141,7 @@ def get_local_binary_patterns(image, neighbors=8, radius=3):
         lbp_image = local_binary_pattern(image[layer], numPoints, radius, method="uniform")
         hist = get_lbp_histogram(lbp_image)
 
-        # feature_visualization.show_lbp_features(lbp)
+        # feature_visualization.show_lbp_features(lbp_image)
 
         features.append(hist)
 
@@ -142,13 +162,26 @@ def get_lbp_histogram(lbp_image):
 """
 Get ORB (Oriented FAST and rotated BRIEF) keypoint features.
 
-Resulting features size is: TODO
+Resulting features size is: n_keypoints * 2 (maybe)
 """
-def get_orb_features(image, n_keypoints=500, patch_size=20):
+def get_orb_features(image, n_keypoints=10, patch_size=20):
     features = []
 
     for layer in range(len(image)): # loop over image layers
-        key_points, _ = get_keypoints(image[layer], n_keypoints)
+        # key_points= get_orb_keypoints(image[layer], n_keypoints)
+
+        orb = ORB(n_keypoints=n_keypoints)
+        orb.detect_and_extract(image[layer])
+        desc = orb.descriptors
+
+        if len(desc) != n_keypoints:
+            desc = np.concatenate((desc, [np.zeros(desc[0].shape)] * (n_keypoints - len(desc))))
+        features.append(desc)
+        continue
+
+
+        if len(key_points) != n_keypoints:
+            key_points = np.concatenate((key_points, [[256, 256]] * (n_keypoints - len(key_points))))
 
         diss = list()
         corr = list()
@@ -168,11 +201,11 @@ def get_orb_features(image, n_keypoints=500, patch_size=20):
     return np.concatenate(features)
 
 
-def get_keypoints(image, n_keypoints):
+def get_orb_keypoints(image, n_keypoints):
     orb = ORB(n_keypoints=n_keypoints)
-    orb.detect_and_extract(image)
+    orb.detect(image)
 
-    return orb.keypoints, orb.descriptors # TODO: maybe use descriptors?
+    return orb.keypoints
 
 
 """
@@ -183,14 +216,11 @@ Smaller pixels_per_cell, larger cells_per_block increases features size.
 def get_hog_features(image):
     reshaped_image = np.swapaxes(image, 0, 2)
 
-    features = hog(reshaped_image, orientations=8, pixels_per_cell=(16, 16), cells_per_block=(2, 2), multichannel=True)
+    features = hog(reshaped_image, orientations=10, pixels_per_cell=(16, 16), cells_per_block=(1, 1), multichannel=True)
 
     # feature_visualization.show_hog_features(reshaped_image)
 
     return features
-
-
-import matplotlib.pyplot as plt
 
 """
 Get Gabor filter/kernel features.
@@ -210,7 +240,7 @@ def get_gabor_features(image, frequency=0.2, theta=0, sigma_x=1, sigma_y=1):
     # TODO: decide if going to try this
     # need more kernels and to choose some features out of huge set
 
-    plt.imshow(filtered)
-    plt.show()
+    # plt.imshow(filtered)
+    # plt.show()
 
     raise Exception("Not yet implemented.")
