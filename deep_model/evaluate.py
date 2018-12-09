@@ -15,9 +15,12 @@ import tensorflow as tf
 
 import HumanProteinAtlas
 from deep_model.config import Configuration
+from deep_model.params import Params
+
+from preprocessing import load_dataset, preprocess_dataset
 from partitions import partitions, Split
 from evaluation import metrics
-from HumanProteinAtlas import Organelle
+from HumanProteinAtlas import Organelle, Dataset
 
 # Solves OpenMP multiple installation problem
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -82,10 +85,40 @@ def compute_predictions(dataset, run_model, ids, batch_size=64):
     return probabilities
 
 
+def get_test_data(human_protein_atlas):
+    assert isinstance(human_protein_atlas, Dataset)
+
+    dataset = load_dataset(human_protein_atlas, Split.test)
+    dataset = preprocess_dataset(dataset)
+
+    # Shuffle/batch test data set
+    return dataset.shuffle(16).batch(16)
+
+
+def restore_model(save_path, model_file):
+
+    dataset = get_test_data()
+
+    input, labels = iterator.get_next()
+    input = tf.identity(input, "input")
+
+
 def restore_model(save_path, model_file):
     tf.reset_default_graph()
 
     sess = tf.Session()
+
+    logger.info("Instantiating model...")
+    from deep_model.InceptionV1 import InceptionV1
+    params = Params()
+    model = InceptionV1(params)
+    is_training = tf.placeholder(tf.bool)
+
+    output, self.cost = self.model(input, labels, self.is_training)
+    output = tf.identity(output, "output")
+
+    model_trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
+    model = InceptionV1()
 
     logger.info("Restoring model: %s" % model_file)
     saver = tf.train.import_meta_graph(model_file)

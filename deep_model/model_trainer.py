@@ -52,16 +52,16 @@ class ModelTrainer(object):
         self._setup_dataset_iterators(train_dataset, test_dataset)
 
         input, labels = self.iterator.get_next()
-        input = tf.identity(input, "input") # name the input tensor
+        input = tf.identity(input, "input")  # name the input tensor
 
         # Create the model's computation graph
         self.logger.info("Instantiating model...")
 
         self.is_training = tf.placeholder(tf.bool)
-        output, self.cost = self.model(input, labels, self.is_training)
-        output = tf.identity(output, "output")
+        self.output, self.cost = self.model(input, labels, self.is_training)
+        self.output = tf.identity(self.output, "output")
 
-        self._define_logging_metrics(output, labels)
+        self._define_logging_metrics(self.output, labels)
 
         # Define the optimization strategy
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -112,7 +112,11 @@ class ModelTrainer(object):
                     except tf.errors.OutOfRangeError:
                         self.logger.info("End of epoch %d" % self.epoch)
                         break
+
             self.logger.info("Training complete.")
+            self._save_model()
+
+            self._predict()
 
     def _define_logging_metrics(self, output, labels):
 
@@ -192,6 +196,28 @@ class ModelTrainer(object):
         self.logger.info("Saving model...")
         self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
         self.logger.info("Model save complete.")
+
+    def _predict(self):
+
+        y_probs_list = list()
+        batch = 0
+        while True:
+            try:
+                feed_dict = {self.is_training: False,
+                             self.dataset_handle: self.test_handle}
+
+                batch_y_probs = self.sess.run(self.output, feed_dict=feed_dict)
+                y_probs_list.append(batch_y_probs)
+
+                if batch % 10 == 0:
+                    self.logger.info("Finishes batch %d" % batch)
+
+            except tf.errors.OutOfRangeError:
+                break
+
+        all_predictions = np.vstack(y_probs_list)
+        np.save("test_y_prob", all_predictions)
+
 
     def _get_optimizer(self, cost):
         if self.params.adam:
