@@ -68,15 +68,21 @@ def plot_per_class_metrics(y_true, y_probs, y_pred, output_dir):
 
     # Per-class ROC
     roc_curves_file = "roc_curves.png"
-    plot_roc(y_true, y_probs)
-    plt.savefig(os.path.join(output_dir, roc_curves_file))
-    image_files.append(roc_curves_file)
+    try:
+        plot_roc(y_true, y_probs)
+        plt.savefig(os.path.join(output_dir, roc_curves_file))
+        image_files.append(roc_curves_file)
+    except:
+        print("Failed to generate ROC plot")
 
     # Per-class Precision Recall
     pr_curves_file = "pr_curves.png"
-    plot_precision_recall(y_true, y_probs)
-    plt.savefig(os.path.join(output_dir, pr_curves_file))
-    image_files.append(pr_curves_file)
+    try:
+        plot_precision_recall(y_true, y_probs)
+        plt.savefig(os.path.join(output_dir, pr_curves_file))
+        image_files.append(pr_curves_file)
+    except:
+        print("Failed to generate Precision Recall plot")
 
     return image_files
 
@@ -88,7 +94,11 @@ def plot_per_class_metric(labels, y_probs, get_metric, metric_name, save_file=No
     class_values = list()
     m, c = labels.shape
     for i in range(c):
-        value = get_metric(labels[:, i], y_probs[:, i])
+        try:
+            value = get_metric(labels[:, i], y_probs[:, i])
+        except:
+            print("Failed to get metric: %s for class" % (metric_name, i))
+            value = 0
         class_values.append(value)
 
     plt.figure()

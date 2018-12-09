@@ -116,8 +116,6 @@ class ModelTrainer(object):
             self.logger.info("Training complete.")
             self._save_model()
 
-            self._predict()
-
     def _define_logging_metrics(self, output, labels):
 
         predictions = tf.round(output)
@@ -196,28 +194,6 @@ class ModelTrainer(object):
         self.logger.info("Saving model...")
         self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
         self.logger.info("Model save complete.")
-
-    def _predict(self):
-
-        y_probs_list = list()
-        batch = 0
-        while True:
-            try:
-                feed_dict = {self.is_training: False,
-                             self.dataset_handle: self.test_handle}
-
-                batch_y_probs = self.sess.run(self.output, feed_dict=feed_dict)
-                y_probs_list.append(batch_y_probs)
-
-                if batch % 10 == 0:
-                    self.logger.info("Finishes batch %d" % batch)
-
-            except tf.errors.OutOfRangeError:
-                break
-
-        all_predictions = np.vstack(y_probs_list)
-        np.save("test_y_prob", all_predictions)
-
 
     def _get_optimizer(self, cost):
         if self.params.adam:
