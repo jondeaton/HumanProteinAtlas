@@ -1,30 +1,15 @@
 #!/usr/bin/env python
 """
-File: InceptionV1
-Date: 12/7/18 
+File: InceptionFrozen
+Date: 12/8/18 
 Author: Jon Deaton (jdeaton@stanford.edu)
-
-This is the model that I trained for 60 epochs
-for ~ 30 hours on AWS. It was trained with images
-
 """
+
 
 import tensorflow as tf
 from HumanProteinAtlas import Organelle
 
-def f1_cost(y_prob, y_true):
-    with tf.variable_scope("macro-f1-loss"):
-        tp = tf.reduce_sum(y_true * y_prob, axis=0)
-        tn = tf.reduce_sum((1 - y_true) * (1 - y_prob), axis=0)
-        fp = tf.reduce_sum((1 - y_true) * y_prob, axis=0)
-        fn = tf.reduce_sum(y_true * (1 - y_prob), axis=0)
-
-        p = tp / (tp + fp + tf.keras.backend.epsilon())
-        r = tp / (tp + fn + tf.keras.backend.epsilon())
-
-        f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
-        f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
-        return 1 - tf.reduce_mean(f1)
+from deep_model.ops import f1_cost
 
 
 def inception_module(input, filters, kernels):
@@ -51,7 +36,7 @@ def MaxPooling2D(x):
     return tf.layers.max_pooling2d(x, pool_size=(2, 2), strides=2, data_format='channels_first')
 
 
-class InceptionV1(object):
+class InceptionFrozen(object):
     def __init__(self, params):
         self.params = params
         self.variables_to_save = list()
@@ -94,19 +79,21 @@ class InceptionV1(object):
 
         l = batch_pool_drop_conv_relu(l, 32)
         l = batch_pool_drop_conv_relu(l, 64)
-        l = batch_pool_drop_conv_relu(l, 128)
 
-        l = BatchNormalization(l)
-        l = MaxPooling2D(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        with tf.variable_scope("Trainable"):
+            l = batch_pool_drop_conv_relu(l, 128)
 
-        l = tf.layers.flatten(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
-        l = tf.layers.dense(l, len(Organelle), activation='relu')
+            l = BatchNormalization(l)
+            l = MaxPooling2D(l)
+            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
 
-        l = BatchNormalization(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
-        logits = tf.layers.dense(l, len(Organelle), activation=None)
-        y_prob = tf.sigmoid(logits)
+            l = tf.layers.flatten(l)
+            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+            l = tf.layers.dense(l, len(Organelle), activation='relu')
+
+            l = BatchNormalization(l)
+            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+            logits = tf.layers.dense(l, len(Organelle), activation=None)
+            y_prob = tf.sigmoid(logits)
 
         return y_prob, f1_cost(y_prob, labels)

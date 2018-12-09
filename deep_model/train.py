@@ -18,6 +18,7 @@ from deep_model.model_trainer import ModelTrainer
 from deep_model.InceptionModel import InceptionModel
 from deep_model.BaselineModel import BaselineModel
 from deep_model.InceptionV1 import InceptionV1
+from deep_model.InceptionFrozen import InceptionFrozen
 
 
 from HumanProteinAtlas import Dataset
@@ -82,13 +83,12 @@ def main():
     logger.info("Initiating training...")
     logger.debug("TensorBoard Directory: %s" % config.tensorboard_dir)
     logger.debug("Model save file: %s" % config.model_file)
-    logger.debug("Learning rate: %s" % params.learning_rate)
     logger.debug("Num epochs: %s" % params.epochs)
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
-    model = InceptionV1(params)
+    model = InceptionFrozen(params)
     model_trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
-    model_trainer.train(train_dataset, test_dataset)
+    model_trainer.train(train_dataset, test_dataset, trainable_scope=args.scope)
 
     logger.info("Exiting.")
 
@@ -112,6 +112,7 @@ def parse_args():
 
     training_group = parser.add_argument_group("Training")
     training_group.add_argument("--epochs", type=int, required=False, help="Number of epochs to train")
+    training_group.add_argument("--scope", type=str, required=False, help="Trainable variable scope")
 
     tensorboard_group = parser.add_argument_group("TensorBoard")
     tensorboard_group.add_argument("--tensorboard", help="TensorBoard directory")
