@@ -10,6 +10,7 @@ import numpy as np
 
 from skimage.feature import greycomatrix, greycoprops, ORB, local_binary_pattern, hog
 from skimage.filters import gabor_kernel
+from skimage.transform import rescale
 from scipy import ndimage as ndi
 from scipy.fftpack import dct
 import cv2
@@ -17,7 +18,7 @@ import cv2
 from feature_extraction.drt import get_radon_transform
 import feature_extraction.feature_visualization
 import feature_extraction.radonCDT as RCDT
-from preprocessing.preprocess import get_binary_image
+from preprocessing.preprocess import get_binary_image, get_grayscale_image
 
 
 class Feature(Enum):
@@ -37,7 +38,6 @@ def extract_features(images, method=Feature.drt):
         features.append(get_features(image, method))
     return np.concatenate(features, axis=0)
 
-from skimage.transform import rescale
 
 def get_features(image, method=Feature.drt): # TODO: add additional arguments ...
     if method == Feature.drt:
@@ -64,12 +64,10 @@ def get_features(image, method=Feature.drt): # TODO: add additional arguments ..
 Get DRT (discrete radon transform) features.
 """
 def get_radon_features(image):
-    features = []
+    image = get_grayscale_image(image)
+    image = get_binary_image(image)
 
-    for layer in range(len(image)):
-        features.append(get_radon_transform(image[layer]).flatten())
-
-    return np.concatenate(features)
+    return get_radon_transform(image).flatten()
 
 
 def get_radon_cdt_features(image):
@@ -107,19 +105,20 @@ n_block_features must be a square number.
 
 Resulting features size is: (512 / block_size)^2 * block_features_width^2 * 3
 """
-def get_dct_features(image, block_size=128, block_features_width=16):
+def get_dct_features(image, block_size=512, block_features_width=20):
     n_blocks = int(image.shape[1] / block_size)
-
     features = []
 
-    for layer in range(image.shape[0]):
-        for i in range(n_blocks):
-            for j in range(n_blocks):
-                block = image[layer, i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size]
+    image = get_grayscale_image(image)
+    image = get_binary_image(image)
 
-                block_features = dct(block, norm="ortho")[:block_features_width, :block_features_width].flatten()
+    for i in range(n_blocks):
+        for j in range(n_blocks):
+            block = image[i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size]
 
-                features.append(block_features)
+            block_features = dct(block, norm="ortho")[:block_features_width, :block_features_width].flatten()
+
+            features.append(block_features)
 
     return np.concatenate(features)
 
@@ -138,7 +137,7 @@ def get_local_binary_patterns(image, neighbors=14, radius=4):
     features = []
 
     for layer in range(len(image)):
-        lbp_image = local_binary_pattern(image[layer], numPoints, radius, method="uniform")
+        lbp_image = local_binary_pattern(image, numPoints, radius, method="uniform")
         hist = get_lbp_histogram(lbp_image)
 
         # feature_visualization.show_lbp_features(lbp_image)
@@ -164,21 +163,11 @@ Get ORB (Oriented FAST and rotated BRIEF) keypoint features.
 
 Resulting features size is: n_keypoints * 2 (maybe)
 """
-def get_orb_features(image, n_keypoints=10, patch_size=20):
+def get_orb_features(image, n_keypoints=5, patch_size=20):
     features = []
 
     for layer in range(len(image)): # loop over image layers
-        # key_points= get_orb_keypoints(image[layer], n_keypoints)
-
-        orb = ORB(n_keypoints=n_keypoints)
-        orb.detect_and_extract(image[layer])
-        desc = orb.descriptors
-
-        if len(desc) != n_keypoints:
-            desc = np.concatenate((desc, [np.zeros(desc[0].shape)] * (n_keypoints - len(desc))))
-        features.append(desc)
-        continue
-
+        key_points= get_orb_keypoints(image[layer], n_keypoints)
 
         if len(key_points) != n_keypoints:
             key_points = np.concatenate((key_points, [[256, 256]] * (n_keypoints - len(key_points))))
@@ -202,7 +191,7 @@ def get_orb_features(image, n_keypoints=10, patch_size=20):
 
 
 def get_orb_keypoints(image, n_keypoints):
-    orb = ORB(n_keypoints=n_keypoints)
+    orb = ORB(n_keypoints=n_keypoints, fast_threshold=0.05, harris_k=0.1)
     orb.detect(image)
 
     return orb.keypoints

@@ -32,7 +32,7 @@ import multiprocessing as mp
 Ref: https://scikit-learn.org/stable/auto_examples/cluster/plot_kmeans_silhouette_analysis.html
 """
 def silhouette_plots(X):
-    range_n_clusters = [2, 4, 8, 16, 24, 30]
+    range_n_clusters = [2, 4, 8, 16, 27, 30]
 
     for n_clusters in range_n_clusters:
         # Create a subplot with 1 row and 2 columns
@@ -128,9 +128,13 @@ def explore_features(X):
     # plt.scatter(tsne_components[:, 0], tsne_components[:, 1])
     # plt.show()
 
+    print("Raw features, dim=", X[0].shape)
+    silhouette_plots(X)
+
     pca = PCA(n_components=2, whiten=True)
     principalComponents = pca.fit_transform(X)
 
+    print("PCA=2:")
     silhouette_plots(principalComponents)
 
     plt.figure()
@@ -145,7 +149,7 @@ def _get_ft(t):
 def get_ft(dataset, id):
     print("Extracting features for: %s" % id)
     img = dataset[id].combined((Color.blue, Color.yellow, Color.red))
-    return get_features(img, method=Feature.drt)
+    return get_features(img, method=Feature.dct)
 
 
 def main():

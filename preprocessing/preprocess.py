@@ -23,3 +23,7 @@ def get_binary_image(image, threshold=0.5):
 		b_img[layer][b_img[layer] >= threshold] = 1.0
 
 	return b_img
+
+
+def get_grayscale_image(image):
+	return (image[0] + image[1] + image[2]) / 3
