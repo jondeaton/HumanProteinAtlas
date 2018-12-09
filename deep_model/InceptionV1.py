@@ -12,24 +12,6 @@ for ~ 30 hours on AWS. It was trained with images
 import tensorflow as tf
 from HumanProteinAtlas import Organelle
 
-
-def f1(y_true, y_pred):
-    with tf.variable_scope("macro-f1-score"):
-        y_pred = tf.cast(y_pred, tf.float32)
-
-        tp = tf.reduce_sum(y_true * y_pred, axis=0)
-        tn = tf.reduce_sum((1 - y_true) * (1 - y_pred), axis=0)
-        fp = tf.reduce_sum((1 - y_true) * y_pred, axis=0)
-        fn = tf.reduce_sum(y_true * (1 - y_pred), axis=0)
-
-        p = tp / (tp + fp + tf.keras.backend.epsilon())
-        r = tp / (tp + fn + tf.keras.backend.epsilon())
-
-        f1 = 2 * p * r / (p + r + tf.keras.backend.epsilon())
-        f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
-        return tf.reduce_mean(f1)
-
-
 def f1_cost(y_prob, y_true):
     with tf.variable_scope("macro-f1-loss"):
         tp = tf.reduce_sum(y_true * y_prob, axis=0)

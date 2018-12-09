@@ -48,7 +48,10 @@ class ModelTrainer(object):
 
         self.epoch = 0
 
-    def train(self, train_dataset, test_dataset):
+    def train(self, train_dataset, test_dataset, trainable_scope=None):
+        assert isinstance(train_dataset, tf.data.Dataset)
+        assert isinstance(test_dataset, tf.data.Dataset)
+
         self._setup_dataset_iterators(train_dataset, test_dataset)
 
         input, labels = self.iterator.get_next()
@@ -63,9 +66,14 @@ class ModelTrainer(object):
 
         self._define_logging_metrics(self.output, labels)
 
+        # Get list of variables to train
+        var_list = None
+        if trainable_scope is not None:
+            self.logger.info("Trainable scope: %s" % trainable_scope)
+            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, trainable_scope)
+
         # Define the optimization strategy
-        self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.optimizer = self._get_optimizer(self.cost)
+        self.optimizer, self.global_step = self._get_optimizer(self.cost, var_list=var_list)
 
         init = tf.global_variables_initializer()
         init_l = tf.local_variables_initializer()
@@ -97,7 +105,7 @@ class ModelTrainer(object):
                 self.batch = 0
                 while True:
                     try:
-                        self._train_batch()
+                        self._train_batch(self.train_handle)
 
                         if self.batch % self.config.tensorboard_freq == 0:
                             self.sess.run(self.test_iterator.initializer)
@@ -132,6 +140,9 @@ class ModelTrainer(object):
         self.logging_metrics["positive accuracy"] = positive_accuracy
 
     def _setup_dataset_iterators(self, train_dataset, test_dataset):
+        assert isinstance(train_dataset, tf.data.Dataset)
+        assert isinstance(test_dataset, tf.data.Dataset)
+
         # dataset iterators (for selecting dataset to feed in)
         self.dataset_handle = tf.placeholder(tf.string, shape=[])
         self.iterator = tf.data.Iterator.from_string_handle(self.dataset_handle,
@@ -161,9 +172,9 @@ class ModelTrainer(object):
         # Add the pretty graph viz
         self.writer.add_graph(self.sess.graph)
 
-    def _train_batch(self):
+    def _train_batch(self, train_set_handle):
         feed_dict = {self.is_training: True,
-                     self.dataset_handle: self.train_handle}
+                     self.dataset_handle: train_set_handle}
 
         train_summary, _, cost = self.sess.run([self.merged_summary, self.optimizer, self.cost],
                                                feed_dict=feed_dict)
@@ -195,7 +206,10 @@ class ModelTrainer(object):
         self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
         self.logger.info("Model save complete.")
 
-    def _get_optimizer(self, cost):
+    def _get_optimizer(self, cost, var_list=None):
+
+        global_step = tf.Variable(0, name='global_step', trainable=False)
+
         if self.params.adam:
             # with Adam optimization: no learning rate decay
             learning_rate = tf.constant(self.params.learning_rate, dtype=tf.float32)
@@ -205,7 +219,7 @@ class ModelTrainer(object):
 
             # Stochastic Gradient Descent Optimizer with exponential learning rate decay
             learning_rate = tf.train.exponential_decay(self.params.learning_rate,
-                                                       global_step=self.global_step,
+                                                       global_step=global_step,
                                                        decay_steps=100000,
                                                        decay_rate=self.params.learning_decay_rate,
                                                        staircase=False,
@@ -216,9 +230,9 @@ class ModelTrainer(object):
         # this incantation ensures the BatchNorm moving mean/variance are updated with each step
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            optimizer = sgd.minimize(cost, name='optimizer', global_step=self.global_step)
+            optimizer = sgd.minimize(cost, var_list=var_list, name='optimizer', global_step=global_step)
 
-        return optimizer, learning_rate
+        return optimizer, global_step
 
     def _get_job_name(self):
         # makes an identifying name for this run

@@ -55,11 +55,11 @@ def ConvReLu(input, filters, kernel):
     kernel_initializer = tf.truncated_normal_initializer(stddev=5e-2, dtype=tf.float32)
     bias_initializer = tf.zeros_initializer(dtype=tf.float32)
 
-    return tf.layers.conv2d(input,
+    l = tf.layers.conv2d(input,
                      filters=filters, kernel_size=kernel, strides=(1, 1), padding='same',
-                     data_format='channels_first', activation='relu', use_bias=True,
+                     data_format='channels_first', activation=None, use_bias=True,
                      kernel_initializer=kernel_initializer, bias_initializer=bias_initializer)
-
+    return tf.nn.relu(l)
 
 def MaxPooling2D(x):
     return tf.layers.max_pooling2d(x, pool_size=(2, 2), strides=2, data_format='channels_first')
