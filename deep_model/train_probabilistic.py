@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-File: train
-Date: 10/19/18 
+File: train_probabilistic
+Date: 12/9/18 
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
@@ -14,25 +14,30 @@ from deep_model.config import Configuration
 from deep_model.params import Params
 from deep_model.model_trainer import ModelTrainer
 
-from deep_model.InceptionV1 import InceptionV1
+from deep_model.probabilistic_model import ProbabilisticModel
 
-from HumanProteinAtlas import Dataset
+from HumanProteinAtlas import Dataset, Color
+from feature_extraction import get_features, Feature
 from partitions import Split
-from preprocessing import load_dataset, augment_dataset, preprocess_dataset
+from preprocessing import load_gmm_dataset, augment_dataset, preprocess_dataset
+import pickle
+
+from sklearn.mixture import GaussianMixture
 
 
-def create_datasets(human_protein_atlas, bias_rare=False, rare_classes=None):
+def create_datasets(human_protein_atlas, gmm_model):
     assert isinstance(human_protein_atlas, Dataset)
-
-    if bias_rare and rare_classes is None:
-        raise ValueError("Provide list of rare classes to use rare class bias")
+    assert isinstance(gmm_model, GaussianMixture)
 
     splits = (Split.train, Split.test, Split.validation)
-    datasets = [load_dataset(human_protein_atlas, split) for split in splits]
 
-    if bias_rare:
-        rare_dataset = load_dataset(human_protein_atlas, Split.train, classes=rare_classes)
-        datasets[0] = datasets[0].concatenate(rare_dataset)  # add it into the training dataset
+    def get_gmm_probas(sample):
+        img = sample.combined((Color.blue, Color.yellow, Color.red))
+        features = get_features(img, method=Feature.dct)
+        return gmm_model.predict(features)
+
+    datasets = [load_gmm_dataset(human_protein_atlas, split, get_gmm_probas, gmm_model.n_components)
+                for split in splits]
 
     # any pre-processing to be done across all data sets
     for i, dataset in enumerate(datasets):
@@ -80,9 +85,12 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
 
     human_protein_atlas = Dataset(config.dataset_directory)
-    train_dataset, test_dataset, _ = create_datasets(human_protein_atlas,
-                                                     bias_rare=params.bias_rare,
-                                                     rare_classes=params.rare_classes)
+
+    logger.info("Loading GMM model from: %s" % config.gmm_model_file)
+    with open(config.gmm_model_file, 'r') as f:
+        gmm_model = pickle.load(f)
+
+    train_dataset, test_dataset, _ = create_datasets(human_protein_atlas, gmm_model)
 
     logger.info("Initiating training...")
     logger.debug("TensorBoard Directory: %s" % config.tensorboard_dir)
@@ -90,7 +98,7 @@ def main():
     logger.debug("Num epochs: %s" % params.epochs)
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
-    model = InceptionV1(params)
+    model = ProbabilisticModel(params)
     trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
     trainer.train(train_dataset, test_dataset, trainable_scope=args.scope)
 

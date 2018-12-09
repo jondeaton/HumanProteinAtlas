@@ -21,6 +21,8 @@ class Configuration(object):
         self._config.read(self._config_file)
         c = self._config
 
+        self.gmm_model_file = os.path.expanduser(c["GMM"]["path"])
+
         self.dataset_directory = os.path.expanduser(c["Data"]["path"])
         self.model_file = os.path.expanduser(c["Output"]["save-file"])
         self.save_freq = int(c['Output']['save_freq'])

@@ -8,6 +8,8 @@
   "dropout": false,
   "dropout_rate": 0.2,
   "scope": null,
+  "bias_rare": false,
+  "rare_classes": [9, 10, 11, 16, 26, 27],
 
   "batch-norm": false,
 

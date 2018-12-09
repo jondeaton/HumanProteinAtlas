@@ -11,7 +11,7 @@ from HumanProteinAtlas import Organelle
 from deep_model.ops import *
 
 
-class ProbabalisticModel(object):
+class ProbabilisticModel(object):
     def __init__(self, params):
         self.params = params
 
@@ -24,43 +24,41 @@ class ProbabalisticModel(object):
         assert isinstance(is_training, tf.Tensor)
 
         def BatchNormalization(input):
-            bn = tf.layers.batch_normalization(input, axis=-1, training=is_training)
-            assert isinstance(bn, tf.keras.layers.BatchNormalization)
+            batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
+            assert isinstance(batchnorm, tf.keras.layers.BatchNormalization)
+            bn = batchnorm(input, training=is_training)
 
-            self.variables_to_save.append(bn.moving_mean)
-            self.variables_to_save.append(bn.moving_variance)
+            # Need to add these to the list of variables to save
+            # these attributes only become available after calling apply
+            self.variables_to_save.append(batchnorm.moving_mean)
+            self.variables_to_save.append(batchnorm.moving_variance)
 
             return bn
 
-        def ComplexBlock(input, filters):
-            with tf.variable_scope("ComplexBlock"):
-                x = BatchNormalization(input)
-                x = MaxPooling2D(x)
-                x = tf.layers.dropout(x, rate=self.params.dropout_rate, training=is_training)
-                return ConvReLu(x, filters, (3, 3))
-
         def BasicBlock(input, filters):
-            with tf.variable_scope("BasicBlock"):
-                intermediate = BatchNormalization(input)
-                return ConvReLu(intermediate, filters, (3, 3))
+            x = BatchNormalization(input)
+            return ConvReLu(x, filters, (3, 3))
 
-        with tf.variable_scope("Basic"):
-            l = BasicBlock(input, 8)
-            l = BasicBlock(l, 8)
-            l = BasicBlock(l, 16)
+        def ComplexBlock(input, filters):
+            x = BatchNormalization(input)
+            x = MaxPooling2D(x)
+            x = tf.layers.dropout(x, rate=self.params.dropout_rate, training=is_training)
+            return ConvReLu(x, filters, (3, 3))
 
-        with tf.variable_scope("Intermediate"):
-            l = BatchNormalization(l)
-            l = MaxPooling2D(l)
+        l = BasicBlock(input, 8)
+        l = BasicBlock(l, 8)
+        l = BasicBlock(l, 16)
 
-            l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        l = BatchNormalization(l)
+        l = MaxPooling2D(l)
 
-            l = inception_module(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
-            l = BatchNormalization(l)
+        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
 
-        with tf.variable_scope("Complex"):
-            l = ComplexBlock(l, 32)
-            l = ComplexBlock(l, 64)
+        l = inception_module(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
+        l = BatchNormalization(l)
+
+        l = ComplexBlock(l, 32)
+        l = ComplexBlock(l, 64)
 
         def LatentConditional(input):
             with tf.variable_scope("Parallel"):
