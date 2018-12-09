@@ -94,6 +94,16 @@ class Sample:
 
         return combined
 
+    def combined(self, channels):
+        combined = np.empty((len(channels),) + self.shape)
+        for i, color in enumerate(channels):
+            img = self.image(color)
+            if color in self._images:
+                del self._images[color]
+            combined[i] = img
+        return combined
+
+
     def image(self, color):
         if isinstance(color, str):
             color = colors[color]
@@ -113,7 +123,7 @@ class Sample:
         # Not present. Must load from disk
         img = self._load_image(color)
         if self._scale:
-            img = img / 255
+            img = np.divide(img, 255.0)
 
         if self._cache:
             self._images[color] = img
@@ -183,3 +193,9 @@ class Sample:
         if self._shape is None:
             self._shape = img.shape
         return img
+
+    def __repr__(self):
+        return "Sample %s (%s)" % (self.id, self._images_dir)
+
+    def __str__(self):
+        return self.id
