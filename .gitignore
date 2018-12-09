@@ -910,7 +910,7 @@ flycheck_*.el
 # directory configuration
 .dir-locals.el
 
-deep_model/cofnig.ini
+deep_model/config.ini
 .idea/CS229-Project.iml
 .idea/inspectionProfiles/
 .idea/misc.xml

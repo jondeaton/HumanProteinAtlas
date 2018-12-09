@@ -52,16 +52,16 @@ class ModelTrainer(object):
         self._setup_dataset_iterators(train_dataset, test_dataset)
 
         input, labels = self.iterator.get_next()
-        input = tf.identity(input, "input") # name the input tensor
+        input = tf.identity(input, "input")  # name the input tensor
 
         # Create the model's computation graph
         self.logger.info("Instantiating model...")
 
         self.is_training = tf.placeholder(tf.bool)
-        output, self.cost = self.model(input, labels, self.is_training)
-        output = tf.identity(output, "output")
+        self.output, self.cost = self.model(input, labels, self.is_training)
+        self.output = tf.identity(self.output, "output")
 
-        self._define_logging_metrics(output, labels)
+        self._define_logging_metrics(self.output, labels)
 
         # Define the optimization strategy
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -112,7 +112,9 @@ class ModelTrainer(object):
                     except tf.errors.OutOfRangeError:
                         self.logger.info("End of epoch %d" % self.epoch)
                         break
+
             self.logger.info("Training complete.")
+            self._save_model()
 
     def _define_logging_metrics(self, output, labels):
 
