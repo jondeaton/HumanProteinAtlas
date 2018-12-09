@@ -27,7 +27,7 @@ from preprocessing import load_dataset, augment_dataset, preprocess_dataset
 
 import numpy as np
 
-# classes which we have only few examples of
+# classes which we have few examples of
 rare_classes = [9, 10, 11, 16, 26, 27]
 
 
@@ -37,16 +37,14 @@ def create_datasets(human_protein_atlas):
     datasets = [load_dataset(human_protein_atlas, split)
                 for split in (Split.train, Split.test, Split.validation)]
 
+    rare_dataset = load_dataset(human_protein_atlas, Split.test, classes=rare_classes)
+    datasets[0] = datasets[0].concatenate(rare_dataset) # add it into the training dataset
+
     # any pre-processing to be done on all data sets
     for i, dataset in enumerate(datasets):
         datasets[i] = preprocess_dataset(datasets[i])
 
     train_dataset, test_dataset, validation_dataset = datasets
-
-    rare_dataset = load_dataset(human_protein_atlas, Split.test, classes=rare_classes)
-    rare_dataset = preprocess_dataset(rare_dataset)
-
-    train_dataset = train_dataset.concatenate(rare_dataset)
 
     # Optional Training Dataset augmentation
     if params.augment:
@@ -68,7 +66,6 @@ def create_filtered_dataset(human_protein_atlas):
     assert isinstance(human_protein_atlas, Dataset)
     dataset = load_dataset(human_protein_atlas, Split.train)
     dataset = preprocess_dataset(dataset)
-
 
     rare_classes = [9, 10, 11, 16, 26, 27]
     rare_class_mask = np.zeros(len(Organelle))

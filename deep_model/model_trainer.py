@@ -48,11 +48,11 @@ class ModelTrainer(object):
 
         self.epoch = 0
 
-    def train(self, train_dataset, test_dataset, trainable_scope=None, supplemental_dataset=None):
+    def train(self, train_dataset, test_dataset, trainable_scope=None):
         assert isinstance(train_dataset, tf.data.Dataset)
         assert isinstance(test_dataset, tf.data.Dataset)
 
-        self._setup_dataset_iterators(train_dataset, test_dataset, supplemental_dataset)
+        self._setup_dataset_iterators(train_dataset, test_dataset)
 
         input, labels = self.iterator.get_next()
         input = tf.identity(input, "input")  # name the input tensor
@@ -87,9 +87,6 @@ class ModelTrainer(object):
             self.sess.run(init_l)
 
             self.train_handle = self.sess.run(self.train_iterator.string_handle())
-            self.supplemental_handle = None
-            if self.supplemental_iterator is not None:
-                self.supplemental_handle = self.sess.run(self.supplemental_iterator.string_handle())
 
             vars_to_save = tf.trainable_variables() + self.model.variables_to_save
             self.saver = tf.train.Saver(vars_to_save, save_relative_paths=True)
@@ -104,18 +101,11 @@ class ModelTrainer(object):
             self.logger.info("Training...")
             for self.epoch in range(self.params.epochs):
                 self.sess.run(self.train_iterator.initializer)
-                if self.supplemental_iterator is not None:
-                    self.sess.run(self.supplemental_iterator.initializer)
 
                 self.batch = 0
                 while True:
                     try:
-                        if self.supplemental_handle is None or self.batch % 2:
-                            train_set_handle = self.train_handle
-                        else:
-                            train_set_handle = self.supplemental_handle
-
-                        self._train_batch(train_set_handle)
+                        self._train_batch(self.train_handle)
 
                         if self.batch % self.config.tensorboard_freq == 0:
                             self.sess.run(self.test_iterator.initializer)
@@ -149,10 +139,9 @@ class ModelTrainer(object):
         self.logging_metrics["accuracy"] = accuracy
         self.logging_metrics["positive accuracy"] = positive_accuracy
 
-    def _setup_dataset_iterators(self, train_dataset, test_dataset, supplemental_dataset=None):
+    def _setup_dataset_iterators(self, train_dataset, test_dataset):
         assert isinstance(train_dataset, tf.data.Dataset)
         assert isinstance(test_dataset, tf.data.Dataset)
-        assert supplemental_dataset is None or isinstance(supplemental_dataset, tf.data.Dataset)
 
         # dataset iterators (for selecting dataset to feed in)
         self.dataset_handle = tf.placeholder(tf.string, shape=[])
@@ -162,9 +151,6 @@ class ModelTrainer(object):
 
         self.train_iterator = train_dataset.make_initializable_iterator()
         self.test_iterator = test_dataset.make_initializable_iterator()
-        self.supplemental_iterator = None
-        if supplemental_dataset is not None:
-            self.supplemental_iterator = supplemental_dataset.make_initializable_iterator()
 
     def _configure_tensorboard(self):
 
