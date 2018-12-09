@@ -27,13 +27,8 @@ from preprocessing import load_dataset, augment_dataset, preprocess_dataset
 
 import numpy as np
 
+# classes which we have only few examples of
 rare_classes = [9, 10, 11, 16, 26, 27]
-rare_class_mask = np.zeros(len(Organelle))
-rare_class_mask[rare_classes] = 1
-
-def rare_class(image, label):
-    is_rare = tf.cast(label * rare_class_mask, tf.bool)
-    return tf.reduce_any(is_rare)
 
 
 def create_datasets(human_protein_atlas):
@@ -48,7 +43,10 @@ def create_datasets(human_protein_atlas):
 
     train_dataset, test_dataset, validation_dataset = datasets
 
-    rare_dataset = train_dataset.filter(rare_class)
+    rare_dataset = load_dataset(human_protein_atlas, Split.test, classes=rare_classes)
+    rare_dataset = preprocess_dataset(rare_dataset)
+
+    train_dataset = train_dataset.concatenate(rare_dataset)
 
     # Optional Training Dataset augmentation
     if params.augment:
@@ -57,15 +55,6 @@ def create_datasets(human_protein_atlas):
     # Shuffle, batch, prefetch the training data set
     train_dataset = train_dataset.shuffle(params.shuffle_buffer_size)
     train_dataset = train_dataset.batch(params.mini_batch_size)
-    train_dataset = train_dataset.prefetch(buffer_size=params.prefetch_buffer_size)
-
-
-    rare_dataset = rare_dataset.shuffle(params.shuffle_buffer_size)
-    rare_dataset = rare_dataset.batch(params.mini_batch_size)
-
-    train_dataset = tf.data.Dataset.zip((train_dataset, rare_dataset)).flat_map(
-        lambda x0, x1: tf.data.Dataset.from_tensors(x0).concatenate(tf.data.Dataset.from_tensors(x1)))
-
     train_dataset = train_dataset.prefetch(buffer_size=params.prefetch_buffer_size)
 
     # Shuffle/batch test data set
