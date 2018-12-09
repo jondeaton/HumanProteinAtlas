@@ -21,12 +21,22 @@ from deep_model.InceptionV1 import InceptionV1
 from deep_model.InceptionFrozen import InceptionFrozen
 
 
-from HumanProteinAtlas import Dataset
+from HumanProteinAtlas import Dataset, Organelle
 from partitions import Split
 from preprocessing import load_dataset, augment_dataset, preprocess_dataset
 
+import numpy as np
 
-def create_data_pipeline(human_protein_atlas):
+rare_classes = [9, 10, 11, 16, 26, 27]
+rare_class_mask = np.zeros(len(Organelle))
+rare_class_mask[rare_classes] = 1
+
+def rare_class(image, label):
+    is_rare = tf.cast(label * rare_class_mask, tf.bool)
+    return tf.reduce_any(is_rare)
+
+
+def create_datasets(human_protein_atlas):
     assert isinstance(human_protein_atlas, Dataset)
 
     datasets = [load_dataset(human_protein_atlas, split)
@@ -38,6 +48,8 @@ def create_data_pipeline(human_protein_atlas):
 
     train_dataset, test_dataset, validation_dataset = datasets
 
+    rare_dataset = train_dataset.filter(rare_class)
+
     # Optional Training Dataset augmentation
     if params.augment:
         train_dataset = augment_dataset(train_dataset)
@@ -47,11 +59,43 @@ def create_data_pipeline(human_protein_atlas):
     train_dataset = train_dataset.batch(params.mini_batch_size)
     train_dataset = train_dataset.prefetch(buffer_size=params.prefetch_buffer_size)
 
+
+    rare_dataset = rare_dataset.shuffle(params.shuffle_buffer_size)
+    rare_dataset = rare_dataset.batch(params.mini_batch_size)
+
+    train_dataset = tf.data.Dataset.zip((train_dataset, rare_dataset)).flat_map(
+        lambda x0, x1: tf.data.Dataset.from_tensors(x0).concatenate(tf.data.Dataset.from_tensors(x1)))
+
+    train_dataset = train_dataset.prefetch(buffer_size=params.prefetch_buffer_size)
+
     # Shuffle/batch test data set
     test_dataset = test_dataset.shuffle(params.shuffle_buffer_size)
     test_dataset = test_dataset.batch(params.test_batch_size)
 
     return train_dataset, test_dataset, validation_dataset
+
+
+def create_filtered_dataset(human_protein_atlas):
+    assert isinstance(human_protein_atlas, Dataset)
+    dataset = load_dataset(human_protein_atlas, Split.train)
+    dataset = preprocess_dataset(dataset)
+
+
+    rare_classes = [9, 10, 11, 16, 26, 27]
+    rare_class_mask = np.zeros(len(Organelle))
+    rare_class_mask[rare_classes] = 1
+
+    def rare_class(image, label):
+        is_rare = tf.cast(label * rare_class_mask, tf.bool)
+        return tf.reduce_any(is_rare)
+
+    dataset = dataset.filter(rare_class)
+
+    dataset = dataset.shuffle(params.shuffle_buffer_size)
+    dataset = dataset.batch(params.mini_batch_size)
+    dataset = dataset.prefetch(buffer_size=params.prefetch_buffer_size)
+
+    return dataset
 
 
 def main():
@@ -78,7 +122,9 @@ def main():
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
 
     human_protein_atlas = Dataset(config.dataset_directory)
-    train_dataset, test_dataset, _ = create_data_pipeline(human_protein_atlas)
+    train_dataset, test_dataset, _ = create_datasets(human_protein_atlas)
+
+    # filtered_dataset = create_filtered_dataset(human_protein_atlas)
 
     logger.info("Initiating training...")
     logger.debug("TensorBoard Directory: %s" % config.tensorboard_dir)
@@ -86,9 +132,13 @@ def main():
     logger.debug("Num epochs: %s" % params.epochs)
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
-    model = InceptionFrozen(params)
-    model_trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
-    model_trainer.train(train_dataset, test_dataset, trainable_scope=args.scope)
+    # model = InceptionFrozen(params)
+    model = InceptionV1(params)
+    trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
+
+    trainer.train(train_dataset, test_dataset,
+                        trainable_scope=args.scope,
+                        supplemental_dataset=None)
 
     logger.info("Exiting.")
 

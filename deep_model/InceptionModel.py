@@ -32,8 +32,8 @@ class InceptionModel(object):
 
             return bn
 
-        def ComplexBlock(input, filters):
-            with tf.variable_scope("ComplexBlock"):
+        def DeepBlock(input, filters):
+            with tf.variable_scope("DeepBlock"):
                 x = BatchNormalization(input)
                 x = MaxPooling2D(x)
                 x = tf.layers.dropout(x, rate=self.params.dropout_rate, training=is_training)
@@ -58,10 +58,10 @@ class InceptionModel(object):
             l = inception_module(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
             l = BatchNormalization(l)
 
-        with tf.variable_scope("Complex"):
-            l = ComplexBlock(l, 32)
-            l = ComplexBlock(l, 64)
-            l = ComplexBlock(l, 128)
+        with tf.variable_scope("Deep"):
+            l = DeepBlock(l, 32)
+            l = DeepBlock(l, 64)
+            l = DeepBlock(l, 128)
 
             l = BatchNormalization(l)
             l = MaxPooling2D(l)
