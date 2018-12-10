@@ -45,7 +45,10 @@ class ProbabilisticModel(object):
             x = tf.layers.dropout(x, rate=self.params.dropout_rate, training=is_training)
             return ConvReLu(x, filters, (3, 3))
 
-        l = BasicBlock(input, 8)
+        # unpack the input tuple
+        input_image, latent_priors = input
+
+        l = BasicBlock(input_image, 8)
         l = BasicBlock(l, 8)
         l = BasicBlock(l, 16)
 

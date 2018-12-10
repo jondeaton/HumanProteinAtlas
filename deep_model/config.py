@@ -30,6 +30,10 @@ class Configuration(object):
         self.tensorboard_dir = os.path.expanduser(c["TensorFlow"]["tensorboard-dir"])
         self.tensorboard_freq = int(c["TensorFlow"]["log-frequency"])
 
+        self.save_freq = int(c['Output']['save_freq'])
+        self.max_to_keep = int(c['Output']['max_to_keep'])
+        self.keep_checkpoint_every_n_hours = int(c['Output']['keep_checkpoint_every_n_hours'])
+
     def override(self, args):
         for attr in vars(args):
             if getattr(self, attr) is not None:

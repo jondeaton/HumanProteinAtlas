@@ -19,7 +19,7 @@ from deep_model.InceptionV1 import InceptionV1
 from HumanProteinAtlas import Dataset
 from partitions import Split
 from preprocessing import load_dataset, augment_dataset, preprocess_dataset
-
+import numpy as np
 
 def create_datasets(human_protein_atlas, bias_rare=False, rare_classes=None):
     assert isinstance(human_protein_atlas, Dataset)
@@ -56,25 +56,10 @@ def create_datasets(human_protein_atlas, bias_rare=False, rare_classes=None):
     return train_dataset, test_dataset, validation_dataset
 
 
-def main():
-    args = parse_args()
+def run_train(args, config, params):
 
-    global config
-    if args.config is not None:
-        config = Configuration(args.config)
-    else:
-        config = Configuration()  # use default
-
-    global params
-    if args.params is not None:
-        params = Params(args.params)
-    else:
-        params = Params()
-
-    params.override(args)
-
-    # Set random seed for reproducible results
-    tf.set_random_seed(params.seed)
+    np.random.seed(params.seed)
+    tf.set_random_seed(params.seed)   # Set random seed for reproducible results
 
     logger.info("Creating data pre-processing pipeline...")
     logger.debug("Human Protein Atlas dataset: %s" % config.dataset_directory)
@@ -92,9 +77,28 @@ def main():
 
     model = InceptionV1(params)
     trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
-    trainer.train(train_dataset, test_dataset, trainable_scope=args.scope)
+    trainer.train(train_dataset, test_dataset, trainable_scope=params.scope)
 
     logger.debug("Exiting.")
+
+
+def main():
+    args = parse_args()
+
+    global config
+    if args.config is not None:
+        config = Configuration(args.config)
+    else:
+        config = Configuration()  # use default
+
+    global params
+    if args.params is not None:
+        params = Params(args.params)
+    else:
+        params = Params()
+
+    params.override(args)
+    run_train(args, config, params)
 
 
 def parse_args():

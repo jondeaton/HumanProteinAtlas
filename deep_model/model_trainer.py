@@ -26,7 +26,8 @@ from preprocessing import load_dataset, augment_dataset, preprocess_dataset
 
 class ModelTrainer(object):
 
-    def __init__(self, model, config, params, logger, restore_model_path=None):
+    def __init__(self, model, config, params, logger, restore_model_path=None,
+                 restore_var_list=None):
         assert isinstance(logger, logging.Logger)
         assert isinstance(config, Configuration)
         assert isinstance(params, Params)
@@ -36,8 +37,9 @@ class ModelTrainer(object):
         self.params = params
         self.logger = logger
 
-        self.restore_model_path = restore_model_path
         self.restore = restore_model_path is not None
+        self.restore_model_path = restore_model_path
+        self.restore_var_list = restore_var_list
 
         self.tensorboard_dir = os.path.join(config.tensorboard_dir, self._get_job_name())
 
@@ -87,14 +89,13 @@ class ModelTrainer(object):
             self.sess.run(init_l)
 
             self.train_handle = self.sess.run(self.train_iterator.string_handle())
-
-            vars_to_save = tf.trainable_variables() + self.model.variables_to_save
-            self.saver = tf.train.Saver(vars_to_save, save_relative_paths=True)
+            self.saver = self._make_saver()
             self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
 
             if self.restore:
                 self.logger.info("Restoring model from checkpoint: %s" % self.restore_model_path)
-                self.saver.restore(self.sess, tf.train.latest_checkpoint(self.restore_model_path))
+                saver = tf.train.Saver(self.restore_var_list)
+                saver.restore(self.sess, tf.train.latest_checkpoint(self.restore_model_path))
                 self.logger.info("Model restored.")
 
             # Training epochs
@@ -123,6 +124,12 @@ class ModelTrainer(object):
 
             self.logger.info("Training complete.")
             self._save_model()
+
+    def _make_saver(self):
+        vars_to_save = tf.trainable_variables() + self.model.variables_to_save
+        return tf.train.Saver(vars_to_save, save_relative_paths=True,
+                              max_to_keep=self.config.max_to_keep,
+                              keep_checkpoint_every_n_hours=self.config.keep_checkpoint_every_n_hours)
 
     def _define_logging_metrics(self, output, labels):
 

@@ -90,7 +90,7 @@ class Params(object):
         return self.dict["dropout_rate"]
 
     @property
-    def sope(self):
+    def scope(self):
         return self.dict["scope"]
 
     @property

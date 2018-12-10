@@ -87,7 +87,7 @@ def main():
     human_protein_atlas = Dataset(config.dataset_directory)
 
     logger.info("Loading GMM model from: %s" % config.gmm_model_file)
-    with open(config.gmm_model_file, 'r') as f:
+    with open(config.gmm_model_file, 'rb') as f:
         gmm_model = pickle.load(f)
 
     train_dataset, test_dataset, _ = create_datasets(human_protein_atlas, gmm_model)
@@ -99,7 +99,13 @@ def main():
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
     model = ProbabilisticModel(params)
-    trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
+
+    with open("deep_model/ProbabilisticModel/frozen_tensors.txt") as f:
+        restore_var_list = f.read().strip().split("\n")
+
+    trainer = ModelTrainer(model, config, params, logger,
+                           restore_model_path=args.restore,
+                           restore_var_list=restore_var_list)
     trainer.train(train_dataset, test_dataset, trainable_scope=args.scope)
 
     logger.debug("Exiting.")
