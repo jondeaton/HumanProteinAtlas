@@ -22,7 +22,6 @@ from feature_extraction import Feature, get_features
 
 import multiprocessing as mp
 
-
 def train_gmm(X, n_clusters):
     gmm = GaussianMixture(n_components=n_clusters)
     gmm.fit(X)

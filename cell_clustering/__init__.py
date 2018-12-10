@@ -6,7 +6,6 @@ Author: Robert Neff (rneff@stanford.edu)
 """
 
 import os
-from cell_clustering.cluster import ClusteringMethod
 from partitions.partition import Split
 
 default_partition_store = os.path.join(os.path.split(__file__)[0],
