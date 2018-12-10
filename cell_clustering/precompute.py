@@ -22,16 +22,16 @@ from sklearn.mixture import GaussianMixture
 
 import multiprocessing as mp
 
+
 def _get_gmm_probas(t):
     return get_gmm_probas(*t)
 
-def get_gmm_probas(dataset, id,  gmm_model):
+
+def get_gmm_probas(dataset, id):
     print("Extracting features for: %s" % id)
     img = dataset[id].combined((Color.blue, Color.yellow, Color.red))
     features = get_features(img, method=Feature.dct)
-    features = np.expand_dims(features, axis=0)
-    probs = gmm_model.predict_proba(features)[0]
-    return probs
+    return features
 
 
 def main():
@@ -45,10 +45,6 @@ def main():
 
     np.random.seed(args.seed)
 
-    logger.info("Loading GMM model from: %s" % config.gmm_model_file)
-    with open(config.gmm_model_file, 'rb') as f:
-        gmm_model = pickle.load(f)
-
     human_protein_atlas = Dataset(config.dataset_directory)
 
     id_set = partitions.train + partitions.test
@@ -56,12 +52,12 @@ def main():
     id_set = np.random.choice(id_set, 50, replace=False)
 
     pool = mp.Pool(8)
-    arguments = [(human_protein_atlas, id, gmm_model) for id in id_set]
+    arguments = [(human_protein_atlas, id) for id in id_set]
     features = pool.map(_get_gmm_probas, arguments)
 
     print("Saving feature map in: %s" % args.output)
     feature_map = {id_set[i]: features[i] for i in range(len(id_set))}
-    with open (args.output, 'wb+') as f:
+    with open(args.output, 'wb+') as f:
         pickle.dump(feature_map, f)
 
     X = np.vstack([feature_map[id] for id in partitions.train if id in feature_map])
