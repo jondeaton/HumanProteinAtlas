@@ -50,7 +50,8 @@ def main():
     id_set = partitions.train + partitions.test
 
     if os.path.isfile(config.feature_map_file):
-        feature_map = pickle.load(config.feature_map_file)
+        with open(config.feature_map_file, 'rb') as f:
+            feature_map = pickle.load(f)
     else:
         pool = mp.Pool(8)
         arguments = [(human_protein_atlas, id) for id in id_set]
@@ -65,7 +66,9 @@ def main():
 
     print("Fitting GMM...")
     gmm = GaussianMixture(n_components=8)
-    gmm.fit(np.random.choice(X, 10000, replace=False))
+    idx = np.random.choice(np.arange(X.shape[0]), 10000, replace=False)
+    subsample = X[idx, :]
+    gmm.fit(subsample)
 
     print("Saving GMM file...")
     with open(config.gmm_model_file, "wb+") as f:
@@ -88,7 +91,7 @@ def parse_args():
     hp_args.add_argument("-s", "--seed", type=int, default=0, help="Random seed")
 
     output_options = parser.add_argument_group("Output")
-    output_options.add_argument("--output", required=True, help="File to save thing in")
+    output_options.add_argument("--output", required=False, help="File to save thing in")
 
     config_args = parser.add_argument_group("Config")
     config_args.add_argument("--recompute", action='store_true', help="Recompute features")
