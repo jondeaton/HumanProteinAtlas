@@ -56,14 +56,15 @@ class ModelTrainer(object):
 
         self._setup_dataset_iterators(train_dataset, test_dataset)
 
-        input, labels = self.iterator.get_next()
+        input, latent_priors, labels = self.iterator.get_next()
+        # input, labels = self.iterator.get_next()
         input = tf.identity(input, "input")  # name the input tensor
 
         # Create the model's computation graph
         self.logger.info("Instantiating model...")
 
         self.is_training = tf.placeholder(tf.bool)
-        self.output, self.cost = self.model(input, labels, self.is_training)
+        self.output, self.cost = self.model(input, latent_priors, labels, self.is_training)
         self.output = tf.identity(self.output, "output")
 
         self._define_logging_metrics(self.output, labels)
@@ -94,7 +95,7 @@ class ModelTrainer(object):
 
             if self.restore:
                 self.logger.info("Restoring model from checkpoint: %s" % self.restore_model_path)
-                saver = tf.train.Saver(self.restore_var_list)
+                saver = tf.train.Saver(self.model.restore_tensors)
                 saver.restore(self.sess, tf.train.latest_checkpoint(self.restore_model_path))
                 self.logger.info("Model restored.")
 

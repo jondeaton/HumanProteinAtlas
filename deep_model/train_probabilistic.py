@@ -23,7 +23,7 @@ from preprocessing import load_gmm_dataset, augment_dataset, preprocess_dataset
 import pickle
 
 from sklearn.mixture import GaussianMixture
-
+import numpy as np
 
 def create_datasets(human_protein_atlas, gmm_model):
     assert isinstance(human_protein_atlas, Dataset)
@@ -34,7 +34,8 @@ def create_datasets(human_protein_atlas, gmm_model):
     def get_gmm_probas(sample):
         img = sample.combined((Color.blue, Color.yellow, Color.red))
         features = get_features(img, method=Feature.dct)
-        return gmm_model.predict(features)
+        features = np.expand_dims(features, axis=0)
+        return gmm_model.predict_proba(features)[0]
 
     datasets = [load_gmm_dataset(human_protein_atlas, split, get_gmm_probas, gmm_model.n_components)
                 for split in splits]
