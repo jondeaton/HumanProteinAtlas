@@ -23,7 +23,7 @@ class Configuration(object):
 
         self.gmm_model_file = os.path.expanduser(c["GMM"]["model_file"])
         self.feature_map_file = os.path.expanduser(c["GMM"]["feature_map_file"])
-
+        self.probs_map_file = os.path.expanduser(c["GMM"]["probs_map_file"])
 
         self.dataset_directory = os.path.expanduser(c["Data"]["path"])
         self.model_file = os.path.expanduser(c["Output"]["save-file"])

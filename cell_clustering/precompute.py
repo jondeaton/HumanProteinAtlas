@@ -49,29 +49,34 @@ def main():
 
     id_set = partitions.train + partitions.test
 
-    id_set = np.random.choice(id_set, 50, replace=False)
+    if os.path.isfile(config.feature_map_file):
+        feature_map = pickle.load(config.feature_map_file)
+    else:
+        pool = mp.Pool(8)
+        arguments = [(human_protein_atlas, id) for id in id_set]
+        features = pool.map(_get_gmm_probas, arguments)
 
-    pool = mp.Pool(8)
-    arguments = [(human_protein_atlas, id) for id in id_set]
-    features = pool.map(_get_gmm_probas, arguments)
-
-    print("Saving feature map in: %s" % args.output)
-    feature_map = {id_set[i]: features[i] for i in range(len(id_set))}
-    with open(args.output, 'wb+') as f:
-        pickle.dump(feature_map, f)
+        print("Saving feature map in: %s" % args.output)
+        feature_map = {id_set[i]: features[i] for i in range(len(id_set))}
+        with open(args.output, 'wb+') as f:
+            pickle.dump(feature_map, f)
 
     X = np.vstack([feature_map[id] for id in partitions.train if id in feature_map])
 
     print("Fitting GMM...")
     gmm = GaussianMixture(n_components=8)
-    gmm.fit(X)
+    gmm.fit(np.random.choice(X, 10000, replace=False))
 
-    X_all = np.vstack(features)
+    print("Saving GMM file...")
+    with open(config.gmm_model_file, "wb+") as f:
+        pickle.dump(gmm, f)
+
+    X_all = np.vstack([feature_map[id] for id in id_set])
     probas = gmm.predict_proba(X_all)
 
-    print("Saving probas map: %s" % "probas_map")
+    print("Saving probas map: %s" % config.probs_map_file)
     probas_map = {id_set[i]: probas[i] for i in range(len(id_set))}
-    with open("probas_map", "wb+") as f:
+    with open(config.probs_map_file, "wb+") as f:
         pickle.dump(probas_map, f)
 
 

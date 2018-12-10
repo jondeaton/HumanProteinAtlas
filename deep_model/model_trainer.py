@@ -236,5 +236,5 @@ class ModelTrainer(object):
 
     def _get_job_name(self):
         # makes an identifying name for this run
-        now = '{:%Y-%m-%d.%H:%M}'.format(datetime.datetime.now())
+        now = '{:%Y-%m-%d.%H-%M}'.format(datetime.datetime.now())
         return "%s_%s_lr_%.4f" % (self.params.model_version, now, self.params.learning_rate)
