@@ -21,8 +21,6 @@ from feature_extraction import Feature, get_features
 
 import multiprocessing as mp
 
-
-
 def _get_gmm_probas(t):
     return get_gmm_probas(*t)
 
@@ -52,10 +50,10 @@ def main():
 
     pool = mp.Pool(8)
     arguments = [(human_protein_atlas, id, gmm_model) for id in partitions.train]
-    features = pool.map(arguments, _get_gmm_probas)
+    features = pool.map(_get_gmm_probas, arguments)
 
     feature_map = {partitions.train[i]: features[i] for i in range(len(partitions.train))}
-    with open ("train_probas", 'wb+') as f:
+    with open (args.output, 'wb+') as f:
         pickle.dump(feature_map, f)
 
 def parse_args():
@@ -63,14 +61,10 @@ def parse_args():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     hp_args = parser.add_argument_group("HyperParameters")
-    hp_args.add_argument("-d", "--num-clusters", default=4, type=int, help="Number of clusters")
-    hp_args.add_argument("-m", "--num-examples", default=5000, type=int, help="Number of examples to use")
     hp_args.add_argument("-s", "--seed", type=int, default=0, help="Random seed")
 
     output_options = parser.add_argument_group("Output")
-    output_options.add_argument("--model-file", required=True, help="File to save trained model in")
-    output_options.add_argument("--features-file", required=False, help="File to save extracted features in")
-    output_options.add_argument("--assignments-file", required=False, help="Save assignments")
+    output_options.add_argument("--output", required=True, help="File to save thing in")
 
     config_args = parser.add_argument_group("Config")
     config_args.add_argument("--recompute", action='store_true', help="Recompute features")
