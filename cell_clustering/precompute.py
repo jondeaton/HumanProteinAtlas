@@ -9,17 +9,10 @@ import os
 import sys
 import argparse
 import logging
-import datetime
 import pickle
-from enum import Enum
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from sklearn.cluster import KMeans, MeanShift
-from sklearn.mixture import GaussianMixture
 
-import HumanProteinAtlas
 from HumanProteinAtlas import Dataset, Sample, Color
 
 from partitions import Split, partitions

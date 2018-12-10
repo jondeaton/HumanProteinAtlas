@@ -13,7 +13,6 @@ from skimage.filters import gabor_kernel
 from skimage.transform import rescale
 from scipy import ndimage as ndi
 from scipy.fftpack import dct
-import cv2
 
 from feature_extraction.drt import get_radon_transform
 import feature_extraction.feature_visualization
