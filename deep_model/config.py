@@ -21,7 +21,9 @@ class Configuration(object):
         self._config.read(self._config_file)
         c = self._config
 
-        self.gmm_model_file = os.path.expanduser(c["GMM"]["path"])
+        self.gmm_model_file = os.path.expanduser(c["GMM"]["model_file"])
+        self.feature_map_file = os.path.expanduser(c["GMM"]["feature_map_file"])
+
 
         self.dataset_directory = os.path.expanduser(c["Data"]["path"])
         self.model_file = os.path.expanduser(c["Output"]["save-file"])

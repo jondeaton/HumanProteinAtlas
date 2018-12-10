@@ -117,7 +117,7 @@ def get_dct_features(image, block_size=512, block_features_width=20):
     features = []
 
     image = get_grayscale_image(image)
-    image = get_binary_image(image)
+    # image = get_binary_image(image)
 
     for i in range(n_blocks):
         for j in range(n_blocks):

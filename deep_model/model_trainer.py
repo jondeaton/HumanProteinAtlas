@@ -5,29 +5,19 @@ Date: 11/17/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
-import os
-import sys
-import argparse
-import logging
+import os, sys
+import logging, argparse
 import datetime
 
-import numpy as np
 import tensorflow as tf
 
-import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
 from deep_model.ops import f1
 
-from HumanProteinAtlas import Dataset
-from partitions import Split
-from preprocessing import load_dataset, augment_dataset, preprocess_dataset
-
-
 class ModelTrainer(object):
 
-    def __init__(self, model, config, params, logger, restore_model_path=None,
-                 restore_var_list=None):
+    def __init__(self, model, config, params, logger, restore_model_path=None):
         assert isinstance(logger, logging.Logger)
         assert isinstance(config, Configuration)
         assert isinstance(params, Params)
@@ -39,7 +29,6 @@ class ModelTrainer(object):
 
         self.restore = restore_model_path is not None
         self.restore_model_path = restore_model_path
-        self.restore_var_list = restore_var_list
 
         self.tensorboard_dir = os.path.join(config.tensorboard_dir, self._get_job_name())
 

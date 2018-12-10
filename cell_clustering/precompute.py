@@ -18,6 +18,7 @@ from HumanProteinAtlas import Dataset, Sample, Color
 from partitions import Split, partitions
 from deep_model.config import Configuration
 from feature_extraction import Feature, get_features
+from sklearn.mixture import GaussianMixture
 
 import multiprocessing as mp
 
@@ -29,7 +30,9 @@ def get_gmm_probas(dataset, id,  gmm_model):
     img = dataset[id].combined((Color.blue, Color.yellow, Color.red))
     features = get_features(img, method=Feature.dct)
     features = np.expand_dims(features, axis=0)
-    return gmm_model.predict_proba(features)[0]
+    probs = gmm_model.predict_proba(features)[0]
+    return probs
+
 
 def main():
     args = parse_args()
@@ -48,13 +51,33 @@ def main():
 
     human_protein_atlas = Dataset(config.dataset_directory)
 
+    id_set = partitions.train + partitions.test
+
+    id_set = np.random.choice(id_set, 50, replace=False)
+
     pool = mp.Pool(8)
-    arguments = [(human_protein_atlas, id, gmm_model) for id in partitions.train]
+    arguments = [(human_protein_atlas, id, gmm_model) for id in id_set]
     features = pool.map(_get_gmm_probas, arguments)
 
-    feature_map = {partitions.train[i]: features[i] for i in range(len(partitions.train))}
+    print("Saving feature map in: %s" % args.output)
+    feature_map = {id_set[i]: features[i] for i in range(len(id_set))}
     with open (args.output, 'wb+') as f:
         pickle.dump(feature_map, f)
+
+    X = np.vstack([feature_map[id] for id in partitions.train if id in feature_map])
+
+    print("Fitting GMM...")
+    gmm = GaussianMixture(n_components=8)
+    gmm.fit(X)
+
+    X_all = np.vstack(features)
+    probas = gmm.predict_proba(X_all)
+
+    print("Saving probas map: %s" % "probas_map")
+    probas_map = {id_set[i]: probas[i] for i in range(len(id_set))}
+    with open("probas_map", "wb+") as f:
+        pickle.dump(probas_map, f)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Cluster training data into cell types",
