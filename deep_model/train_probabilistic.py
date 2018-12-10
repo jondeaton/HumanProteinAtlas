@@ -24,14 +24,14 @@ from preprocessing.load import load_gmm_dataset
 import pickle
 
 
-def create_datasets(human_protein_atlas, feature_map):
+def create_datasets(human_protein_atlas, probas_map):
     assert isinstance(human_protein_atlas, Dataset)
-    assert isinstance(feature_map, dict)
+    assert isinstance(probas_map, dict)
 
     splits = (Split.train, Split.test, Split.validation)
 
     def get_gmm_probas(sample):
-        return feature_map[sample.id]
+        return probas_map[sample.id]
 
     datasets = [load_gmm_dataset(human_protein_atlas, split, get_gmm_probas, 8)
                 for split in splits]
@@ -83,11 +83,11 @@ def main():
 
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    logger.info("Loading feature map from: %s" % config.feature_map_file)
-    with open(config.feature_map_file, 'rb') as f:
-        feature_map = pickle.load(f)
+    logger.info("Loading GMM probabilities from: %s" % config.probs_map_file)
+    with open(config.probs_map_file, 'rb') as f:
+        probs_map = pickle.load(f)
 
-    train_dataset, test_dataset, _ = create_datasets(human_protein_atlas, feature_map)
+    train_dataset, test_dataset, _ = create_datasets(human_protein_atlas, probs_map)
 
     logger.info("Initiating training...")
     logger.debug("TensorBoard Directory: %s" % config.tensorboard_dir)
