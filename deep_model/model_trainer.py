@@ -45,15 +45,15 @@ class ModelTrainer(object):
 
         self._setup_dataset_iterators(train_dataset, test_dataset)
 
-        input, latent_priors, labels = self.iterator.get_next()
-        # input, labels = self.iterator.get_next()
-        input = tf.identity(input, "input")  # name the input tensor
+        endpoints = self.iterator.get_next()
+        labels = endpoints[-1]
+        model_inputs = endpoints[:-1]
 
         # Create the model's computation graph
         self.logger.info("Instantiating model...")
 
         self.is_training = tf.placeholder(tf.bool)
-        self.output, self.cost = self.model(input, latent_priors, labels, self.is_training)
+        self.output, self.cost = self.model(*model_inputs, labels, self.is_training)
         self.output = tf.identity(self.output, "output")
 
         self._define_logging_metrics(self.output, labels)
@@ -235,6 +235,6 @@ class ModelTrainer(object):
         return optimizer, global_step
 
     def _get_job_name(self):
-        # makes an identifying name for this run
+        # makes an identifying name for this training session
         now = '{:%Y-%m-%d.%H-%M}'.format(datetime.datetime.now())
-        return "%s_%s_lr_%.4f" % (self.params.model_version, now, self.params.learning_rate)
+        return "%s_%s" % (self.params.model_version, now)
