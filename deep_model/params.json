@@ -7,7 +7,7 @@
 
   "dropout": false,
   "dropout_rate": 0.2,
-  "scope": null,
+  "scopes": ["Parallel", "MarginalizeLatent"],
   "bias_rare": false,
   "rare_classes": [9, 10, 11, 16, 26, 27],
 

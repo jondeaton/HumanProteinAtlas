@@ -50,7 +50,7 @@ class ModelTrainer(object):
 
         self.epoch = 0
 
-    def train(self, train_dataset, test_dataset, trainable_scope=None):
+    def train(self, train_dataset, test_dataset, trainable_scopes=None):
         assert isinstance(train_dataset, tf.data.Dataset)
         assert isinstance(test_dataset, tf.data.Dataset)
 
@@ -71,9 +71,12 @@ class ModelTrainer(object):
 
         # Get list of variables to train
         var_list = None
-        if trainable_scope is not None:
-            self.logger.info("Trainable scope: %s" % trainable_scope)
-            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, trainable_scope)
+        if trainable_scopes is not None:
+            self.logger.info("Trainable scopes: %s" % trainable_scopes)
+            var_list = list()
+            for scope in trainable_scopes:
+                vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
+                var_list.extend(vars)
 
         # Define the optimization strategy
         self.optimizer, self.global_step = self._get_optimizer(self.cost, var_list=var_list)

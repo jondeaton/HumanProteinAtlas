@@ -107,7 +107,7 @@ def main():
     trainer = ModelTrainer(model, config, params, logger,
                            restore_model_path=args.restore,
                            restore_var_list=restore_var_list)
-    trainer.train(train_dataset, test_dataset, trainable_scope=args.scope)
+    trainer.train(train_dataset, test_dataset, trainable_scopes=args.scopes)
 
     logger.debug("Exiting.")
 
@@ -131,7 +131,6 @@ def parse_args():
 
     training_group = parser.add_argument_group("Training")
     training_group.add_argument("--epochs", type=int, required=False, help="Number of epochs to train")
-    training_group.add_argument("--scope", type=str, required=False, help="Trainable variable scope")
 
     tensorboard_group = parser.add_argument_group("TensorBoard")
     tensorboard_group.add_argument("--tensorboard", help="TensorBoard directory")
