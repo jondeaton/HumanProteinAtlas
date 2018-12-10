@@ -107,7 +107,7 @@ def main():
     trainer = ModelTrainer(model, config, params, logger,
                            restore_model_path=args.restore,
                            restore_var_list=restore_var_list)
-    trainer.train(train_dataset, test_dataset, trainable_scopes=args.scopes)
+    trainer.train(train_dataset, test_dataset, trainable_scopes=params.scopes)
 
     logger.debug("Exiting.")
 
