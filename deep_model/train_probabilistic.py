@@ -16,27 +16,24 @@ from deep_model.model_trainer import ModelTrainer
 
 from deep_model.probabilistic_model import ProbabilisticModel
 
-from HumanProteinAtlas import Dataset, Color
-from feature_extraction import get_features, Feature
+from HumanProteinAtlas import Dataset
 from partitions import Split
-from preprocessing import load_gmm_dataset, augment_dataset, preprocess_dataset
+from preprocessing.augmentation import augment_dataset
+from preprocessing.preprocess import preprocess_dataset
+from preprocessing.load import load_gmm_dataset
 import pickle
 
-from sklearn.mixture import GaussianMixture
 
-
-def create_datasets(human_protein_atlas, gmm_model):
+def create_datasets(human_protein_atlas, probas_map):
     assert isinstance(human_protein_atlas, Dataset)
-    assert isinstance(gmm_model, GaussianMixture)
+    assert isinstance(probas_map, dict)
 
     splits = (Split.train, Split.test, Split.validation)
 
     def get_gmm_probas(sample):
-        img = sample.combined((Color.blue, Color.yellow, Color.red))
-        features = get_features(img, method=Feature.dct)
-        return gmm_model.predict(features)
+        return probas_map[sample.id]
 
-    datasets = [load_gmm_dataset(human_protein_atlas, split, get_gmm_probas, gmm_model.n_components)
+    datasets = [load_gmm_dataset(human_protein_atlas, split, get_gmm_probas, 8)
                 for split in splits]
 
     # any pre-processing to be done across all data sets
@@ -86,11 +83,11 @@ def main():
 
     human_protein_atlas = Dataset(config.dataset_directory)
 
-    logger.info("Loading GMM model from: %s" % config.gmm_model_file)
-    with open(config.gmm_model_file, 'rb') as f:
-        gmm_model = pickle.load(f)
+    logger.info("Loading GMM probabilities from: %s" % config.probs_map_file)
+    with open(config.probs_map_file, 'rb') as f:
+        probs_map = pickle.load(f)
 
-    train_dataset, test_dataset, _ = create_datasets(human_protein_atlas, gmm_model)
+    train_dataset, test_dataset, _ = create_datasets(human_protein_atlas, probs_map)
 
     logger.info("Initiating training...")
     logger.debug("TensorBoard Directory: %s" % config.tensorboard_dir)
@@ -99,14 +96,8 @@ def main():
     logger.debug("Mini-batch size: %s" % params.mini_batch_size)
 
     model = ProbabilisticModel(params)
-
-    with open("deep_model/ProbabilisticModel/frozen_tensors.txt") as f:
-        restore_var_list = f.read().strip().split("\n")
-
-    trainer = ModelTrainer(model, config, params, logger,
-                           restore_model_path=args.restore,
-                           restore_var_list=restore_var_list)
-    trainer.train(train_dataset, test_dataset, trainable_scope=args.scope)
+    trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
+    trainer.train(train_dataset, test_dataset, trainable_scopes=params.scopes)
 
     logger.debug("Exiting.")
 
@@ -130,7 +121,6 @@ def parse_args():
 
     training_group = parser.add_argument_group("Training")
     training_group.add_argument("--epochs", type=int, required=False, help="Number of epochs to train")
-    training_group.add_argument("--scope", type=str, required=False, help="Trainable variable scope")
 
     tensorboard_group = parser.add_argument_group("TensorBoard")
     tensorboard_group.add_argument("--tensorboard", help="TensorBoard directory")

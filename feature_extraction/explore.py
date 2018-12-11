@@ -120,6 +120,7 @@ def silhouette_plots(X):
 
     plt.show()
 
+from sklearn.mixture import GaussianMixture
 
 def explore_features(X):
     # tsne_components = TSNE(n_components=3).fit_transform(X)
@@ -127,19 +128,25 @@ def explore_features(X):
     # plt.figure()
     # plt.scatter(tsne_components[:, 0], tsne_components[:, 1])
     # plt.show()
+    #
+    # print("Raw features, dim=", X[0].shape)
+    # silhouette_plots(X)
+    #
+    # pca = PCA(n_components=2, whiten=True)
+    # principalComponents = pca.fit_transform(X)
+    #
+    # print("PCA=2:")
+    # silhouette_plots(principalComponents)
+    #
+    # plt.figure()
+    # plt.scatter(principalComponents[:, 0], principalComponents[:, 1])
+    # plt.show()
 
-    print("Raw features, dim=", X[0].shape)
-    silhouette_plots(X)
-
-    pca = PCA(n_components=2, whiten=True)
-    principalComponents = pca.fit_transform(X)
-
-    print("PCA=2:")
-    silhouette_plots(principalComponents)
-
-    plt.figure()
-    plt.scatter(principalComponents[:, 0], principalComponents[:, 1])
-    plt.show()
+    print("Fitting gmm...")
+    gmm = GaussianMixture(n_components=27)
+    gmm.fit(X)
+    probas = gmm.predict_proba(X)
+    print(probas)
 
 
 def _get_ft(t):

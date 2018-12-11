@@ -5,18 +5,12 @@ Date: 11/16/18
 Author: Robert Neff (rneff@stanford.edu)
 """
 
-import os
-import sys
+import os, sys
 import argparse
 import logging
-import datetime
 import pickle
-from enum import Enum
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from sklearn.cluster import KMeans, MeanShift
 from sklearn.mixture import GaussianMixture
 
 import HumanProteinAtlas
@@ -27,7 +21,6 @@ from deep_model.config import Configuration
 from feature_extraction import Feature, get_features
 
 import multiprocessing as mp
-
 
 def train_gmm(X, n_clusters):
     gmm = GaussianMixture(n_components=n_clusters)

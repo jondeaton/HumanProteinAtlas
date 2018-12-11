@@ -13,7 +13,6 @@ from skimage.filters import gabor_kernel
 from skimage.transform import rescale
 from scipy import ndimage as ndi
 from scipy.fftpack import dct
-import cv2
 
 from feature_extraction.drt import get_radon_transform
 import feature_extraction.feature_visualization
@@ -118,7 +117,7 @@ def get_dct_features(image, block_size=512, block_features_width=20):
     features = []
 
     image = get_grayscale_image(image)
-    image = get_binary_image(image)
+    # image = get_binary_image(image)
 
     for i in range(n_blocks):
         for j in range(n_blocks):

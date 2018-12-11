@@ -90,8 +90,8 @@ class Params(object):
         return self.dict["dropout_rate"]
 
     @property
-    def scope(self):
-        return self.dict["scope"]
+    def scopes(self):
+        return self.dict["scopes"]
 
     @property
     def bias_rare(self):

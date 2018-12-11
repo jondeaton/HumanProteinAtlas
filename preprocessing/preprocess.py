@@ -9,8 +9,8 @@ import numpy as np
 from scipy.signal import medfilt
 
 def preprocess_dataset(dataset):
-    # currently no universal pre-processing is necessary
-    return dataset
+	# currently no universal pre-processing is necessary
+	return dataset
 
 
 def get_binary_image(image, threshold=0.5):

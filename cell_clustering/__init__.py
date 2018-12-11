@@ -6,17 +6,16 @@ Author: Robert Neff (rneff@stanford.edu)
 """
 
 import os
-from cell_clustering.cluster import ClusteringMethod
 from partitions.partition import Split
 
 default_partition_store = os.path.join(os.path.split(__file__)[0],
                                        "cluster_ouputs")
 
-default_locations = {
-
-    ClusteringMethod.kmeans: {Split.train: os.path.join(default_partition_store, "kmeans_train"),
-                              Split.test: os.path.join(default_partition_store, "kmeans_test")},
-
-    ClusteringMethod.gmm: {Split.train: os.path.join(default_partition_store, "gmm_train"),
-                           Split.test: os.path.join(default_partition_store, "gmm_test")},
-}
+# default_locations = {
+#
+#     ClusteringMethod.kmeans: {Split.train: os.path.join(default_partition_store, "kmeans_train"),
+#                               Split.test: os.path.join(default_partition_store, "kmeans_test")},
+#
+#     ClusteringMethod.gmm: {Split.train: os.path.join(default_partition_store, "gmm_train"),
+#                            Split.test: os.path.join(default_partition_store, "gmm_test")},
+# }
