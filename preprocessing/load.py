@@ -12,7 +12,7 @@ from partitions import Split, partitions
 
 
 def load_dataset(dataset, split, classes=None):
-    """ Loads a dataset into a TensorFlow Dataset
+    """ Loads a dataset into a TensorFlow Dataset object
 
     :param dataset: HumanProteinAtlas dataset
     :param split: which partition to use
@@ -33,7 +33,30 @@ def load_dataset(dataset, split, classes=None):
     sample_shape_shape = dataset.shape[1:]
     label_shape = (len(Organelle),)
 
-    return tf.data.Dataset.from_generator(sample_generator,
-                                          output_types=(tf.float32, tf.float32),
-                                          output_shapes=(tf.TensorShape(sample_shape_shape),
-                                                         tf.TensorShape(label_shape)))
+    output_types = (tf.float32, tf.float32)
+    output_shapes = (tf.TensorShape(sample_shape_shape), tf.TensorShape(label_shape))
+    return tf.data.Dataset.from_generator(sample_generator, output_types=output_types, output_shapes=output_shapes)
+
+
+def load_gmm_dataset(human_protein_atlas, split, get_gmm_probabilities, gmm_num_latent_classes, classes=None):
+    assert isinstance(human_protein_atlas, Dataset)
+    assert isinstance(split, Split)
+
+    if classes is not None:
+        classes = set(classes)
+
+    sample_shape_shape = human_protein_atlas.shape[1:]
+    label_shape = (len(Organelle),)
+    probas_shape = (gmm_num_latent_classes,)
+
+    def sample_generator():
+        for sample_id in partitions[split]:
+            sample = human_protein_atlas.sample(sample_id)
+            if classes is None or any(l in classes for l in sample.labels):
+                gmm_probas = get_gmm_probabilities(sample)
+                yield sample.multi_channel, gmm_probas, sample.multi_hot_label
+
+    output_types = (tf.float32, tf.float32, tf.float32)
+    output_shapes = (tf.TensorShape(sample_shape_shape), tf.TensorShape(probas_shape), tf.TensorShape(label_shape))
+    dataset = tf.data.Dataset.from_generator(sample_generator, output_types=output_types, output_shapes=output_shapes)
+    return dataset

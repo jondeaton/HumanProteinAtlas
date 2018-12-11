@@ -1,5 +1,5 @@
 {
-  "model_version": "CNN",
+  "model_version": "Probabilistic",
 
   "seed": 420,
   "cost": "f1",
@@ -7,9 +7,12 @@
 
   "dropout": false,
   "dropout_rate": 0.2,
-  "scope": null,
+  "scopes": null,
 
-  "batch-norm": false,
+  "bias_rare": false,
+  "rare_classes": [9, 10, 11, 16, 26, 27],
+
+  "batch-norm": true,
 
   "adam": true,
   "learning_rate": 0.0001,

@@ -8,7 +8,6 @@ Author: Robert Neff (rneff@stanford.edu)
 import matplotlib.pyplot as plt
 from skimage import exposure
 from skimage.feature import hog
-import cv2
 
 
 """

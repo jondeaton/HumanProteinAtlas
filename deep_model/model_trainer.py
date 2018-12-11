@@ -5,24 +5,15 @@ Date: 11/17/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
-import os
-import sys
-import argparse
-import logging
+import os, sys
+import logging, argparse
 import datetime
 
-import numpy as np
 import tensorflow as tf
 
-import deep_model
 from deep_model.config import Configuration
 from deep_model.params import Params
 from deep_model.ops import f1
-
-from HumanProteinAtlas import Dataset
-from partitions import Split
-from preprocessing import load_dataset, augment_dataset, preprocess_dataset
-
 
 class ModelTrainer(object):
 
@@ -36,8 +27,8 @@ class ModelTrainer(object):
         self.params = params
         self.logger = logger
 
-        self.restore_model_path = restore_model_path
         self.restore = restore_model_path is not None
+        self.restore_model_path = restore_model_path
 
         self.tensorboard_dir = os.path.join(config.tensorboard_dir, self._get_job_name())
 
@@ -48,29 +39,33 @@ class ModelTrainer(object):
 
         self.epoch = 0
 
-    def train(self, train_dataset, test_dataset, trainable_scope=None):
+    def train(self, train_dataset, test_dataset, trainable_scopes=None):
         assert isinstance(train_dataset, tf.data.Dataset)
         assert isinstance(test_dataset, tf.data.Dataset)
 
         self._setup_dataset_iterators(train_dataset, test_dataset)
 
-        input, labels = self.iterator.get_next()
-        input = tf.identity(input, "input")  # name the input tensor
+        endpoints = self.iterator.get_next()
+        labels = endpoints[-1]
+        model_inputs = endpoints[:-1]
 
         # Create the model's computation graph
         self.logger.info("Instantiating model...")
 
         self.is_training = tf.placeholder(tf.bool)
-        self.output, self.cost = self.model(input, labels, self.is_training)
+        self.output, self.cost = self.model(*model_inputs, labels, self.is_training)
         self.output = tf.identity(self.output, "output")
 
         self._define_logging_metrics(self.output, labels)
 
         # Get list of variables to train
         var_list = None
-        if trainable_scope is not None:
-            self.logger.info("Trainable scope: %s" % trainable_scope)
-            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, trainable_scope)
+        if trainable_scopes is not None:
+            self.logger.info("Trainable scopes: %s" % trainable_scopes)
+            var_list = list()
+            for scope in trainable_scopes:
+                vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
+                var_list.extend(vars)
 
         # Define the optimization strategy
         self.optimizer, self.global_step = self._get_optimizer(self.cost, var_list=var_list)
@@ -87,14 +82,13 @@ class ModelTrainer(object):
             self.sess.run(init_l)
 
             self.train_handle = self.sess.run(self.train_iterator.string_handle())
-
-            vars_to_save = tf.trainable_variables() + self.model.variables_to_save
-            self.saver = tf.train.Saver(vars_to_save, save_relative_paths=True)
+            self.saver = self._make_saver()
             self.saver.save(self.sess, self.config.model_file, global_step=self.global_step)
 
             if self.restore:
                 self.logger.info("Restoring model from checkpoint: %s" % self.restore_model_path)
-                self.saver.restore(self.sess, tf.train.latest_checkpoint(self.restore_model_path))
+                saver = tf.train.Saver(self.model.restore_tensors)
+                saver.restore(self.sess, tf.train.latest_checkpoint(self.restore_model_path))
                 self.logger.info("Model restored.")
 
             # Training epochs
@@ -123,6 +117,12 @@ class ModelTrainer(object):
 
             self.logger.info("Training complete.")
             self._save_model()
+
+    def _make_saver(self):
+        vars_to_save = tf.trainable_variables() + self.model.variables_to_save
+        return tf.train.Saver(vars_to_save, save_relative_paths=True,
+                              max_to_keep=self.config.max_to_keep,
+                              keep_checkpoint_every_n_hours=self.config.keep_checkpoint_every_n_hours)
 
     def _define_logging_metrics(self, output, labels):
 
@@ -235,6 +235,6 @@ class ModelTrainer(object):
         return optimizer, global_step
 
     def _get_job_name(self):
-        # makes an identifying name for this run
-        now = '{:%Y-%m-%d.%H:%M}'.format(datetime.datetime.now())
-        return "%s_%s_lr_%.4f" % (self.params.model_version, now, self.params.learning_rate)
+        # makes an identifying name for this training session
+        now = '{:%Y-%m-%d.%H-%M}'.format(datetime.datetime.now())
+        return "%s_%s" % (self.params.model_version, now)
