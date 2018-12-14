@@ -49,7 +49,7 @@ def silhouette_plots(X):
 
         # Initialize the clusterer with n_clusters value and a random generator
         # seed of 10 for reproducibility.
-        clusterer = KMeans(n_clusters=n_clusters)
+        clusterer = KMeans(n_clusters=n_clusters, random_state=12)
         cluster_labels = clusterer.fit_predict(X)
 
         # The silhouette_score gives the average value for all the samples.
@@ -85,9 +85,9 @@ def silhouette_plots(X):
             # Compute the new y_lower for next plot
             y_lower = y_upper + 10  # 10 for the 0 samples
 
-        ax1.set_title("The silhouette plot for the various clusters.")
-        ax1.set_xlabel("The silhouette coefficient values")
-        ax1.set_ylabel("Cluster label")
+        ax1.set_title("Silhouette plot of feature space clusters.")
+        ax1.set_xlabel("Silhouette coefficient values")
+        ax1.set_ylabel("Cluster index")
 
         # The vertical line for average silhouette score of all the values
         ax1.axvline(x=silhouette_avg, color="red", linestyle="--")
@@ -97,11 +97,18 @@ def silhouette_plots(X):
 
         # 2nd Plot showing the actual clusters formed
         colors = cm.nipy_spectral(cluster_labels.astype(float) / n_clusters)
-        ax2.scatter(X[:, 0], X[:, 1], marker='.', s=30, lw=0, alpha=0.7,
+
+        pca = PCA(n_components=2, whiten=True)
+        principalComponents = pca.fit_transform(X)
+
+        ax2.scatter(principalComponents[:, 0], principalComponents[:, 1], marker='.', s=30, lw=0, alpha=0.7,
                     c=colors, edgecolor='k')
 
         # Labeling the clusters
-        centers = clusterer.cluster_centers_
+        pca = PCA(n_components=2, whiten=True)
+        centers = pca.fit_transform(clusterer.cluster_centers_)
+
+        # centers = clusterer.cluster_centers_
         # Draw white circles at cluster centers
         ax2.scatter(centers[:, 0], centers[:, 1], marker='o',
                     c="white", alpha=1, s=200, edgecolor='k')
@@ -110,12 +117,12 @@ def silhouette_plots(X):
             ax2.scatter(c[0], c[1], marker='$%d$' % i, alpha=1,
                         s=50, edgecolor='k')
 
-        ax2.set_title("The visualization of the clustered data.")
-        ax2.set_xlabel("Feature space for the 1st feature")
-        ax2.set_ylabel("Feature space for the 2nd feature")
+        ax2.set_title("Visualization of PCA=2-components of clustered data.")
+        ax2.set_xlabel("x1")
+        ax2.set_ylabel("x2")
 
         plt.suptitle(("Silhouette analysis for KMeans clustering on sample data "
-                      "with n_clusters = %d" % n_clusters),
+                      "with n_clusters=%d, silhouette score=%f" % (n_clusters, silhouette_avg)),
                      fontsize=14, fontweight='bold')
 
     plt.show()
@@ -128,25 +135,25 @@ def explore_features(X):
     # plt.figure()
     # plt.scatter(tsne_components[:, 0], tsne_components[:, 1])
     # plt.show()
-    #
-    # print("Raw features, dim=", X[0].shape)
-    # silhouette_plots(X)
-    #
+
+    print("Raw features, dim=", X[0].shape)
+    silhouette_plots(X)
+    
     # pca = PCA(n_components=2, whiten=True)
     # principalComponents = pca.fit_transform(X)
-    #
+    
     # print("PCA=2:")
     # silhouette_plots(principalComponents)
-    #
+    
     # plt.figure()
     # plt.scatter(principalComponents[:, 0], principalComponents[:, 1])
     # plt.show()
 
-    print("Fitting gmm...")
-    gmm = GaussianMixture(n_components=27)
-    gmm.fit(X)
-    probas = gmm.predict_proba(X)
-    print(probas)
+    # print("Fitting gmm...")
+    # gmm = GaussianMixture(n_components=27)
+    # gmm.fit(X)
+    # probas = gmm.predict_proba(X)
+    # print(probas)
 
 
 def _get_ft(t):
@@ -156,10 +163,12 @@ def _get_ft(t):
 def get_ft(dataset, id):
     print("Extracting features for: %s" % id)
     img = dataset[id].combined((Color.blue, Color.yellow, Color.red))
-    return get_features(img, method=Feature.dct)
+    return get_features(img, method=Feature.lbp)
 
 
 def main():
+    np.random.seed(1000)
+
     args = parse_args()
 
     global config

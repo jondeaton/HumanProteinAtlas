@@ -15,7 +15,7 @@ Ref: https://aurlabcvsimulator.readthedocs.io/en/latest/PlotLBPsHistogram/
 """
 def show_lbp_features(lbp_image):
     # Display as gray-scale image
-    cv2.imshow("LBP", lbp_image.astype("uint8"))
+    # cv2.imshow("LBP", lbp_image.astype("uint8"))
 
     plt.style.use("ggplot")
     (fig, ax) = plt.subplots()

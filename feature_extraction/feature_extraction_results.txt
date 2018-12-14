@@ -1,0 +1,150 @@
+Some results of feature extraction testing on sub-set of training data:
+
+DCT block_szie=512, features_per_block=10x10
+Raw features, dim= (100,)
+For n_clusters = 2 The average silhouette_score is : 0.3201352707243029
+For n_clusters = 4 The average silhouette_score is : 0.23359660916591163
+For n_clusters = 8 The average silhouette_score is : 0.16315739343271074
+For n_clusters = 16 The average silhouette_score is : 0.1540886999770834
+For n_clusters = 27 The average silhouette_score is : 0.17280562874699076
+For n_clusters = 30 The average silhouette_score is : 0.15394093473497236
+
+
+DCT block_szie=512, features_per_block=20x20
+Raw features, dim= (400,)
+For n_clusters = 2 The average silhouette_score is : 0.2842111045943832
+For n_clusters = 4 The average silhouette_score is : 0.1928427727655743
+For n_clusters = 8 The average silhouette_score is : 0.17112796241061484
+For n_clusters = 16 The average silhouette_score is : 0.10747873607959839
+For n_clusters = 27 The average silhouette_score is : 0.1057609846135985
+For n_clusters = 30 The average silhouette_score is : 0.10096757729426763
+
+DCT block_szie=512, features_per_block=40x40
+Raw features, dim= (1600,)
+For n_clusters = 2 The average silhouette_score is : 0.2463714318417726
+For n_clusters = 4 The average silhouette_score is : 0.14840155284926682
+For n_clusters = 8 The average silhouette_score is : 0.12995669978739505
+For n_clusters = 16 The average silhouette_score is : 0.09538202181688749
+For n_clusters = 27 The average silhouette_score is : 0.05537838703011932
+For n_clusters = 30 The average silhouette_score is : 0.052915856141885896
+
+DCT block_szie=512, features_per_block=60x60
+Raw features, dim= (3600,)
+For n_clusters = 2 The average silhouette_score is : 0.2228760778294142
+For n_clusters = 4 The average silhouette_score is : 0.11641749292881501
+For n_clusters = 8 The average silhouette_score is : 0.09666082451526666
+For n_clusters = 16 The average silhouette_score is : 0.0332606169268475
+For n_clusters = 27 The average silhouette_score is : 0.030127267039297655
+For n_clusters = 30 The average silhouette_score is : 0.026705550167003978
+
+DCT block_szie=128, features_per_block=10x10
+Raw features, dim= (1600,)
+For n_clusters = 2 The average silhouette_score is : 0.18488580061812124
+For n_clusters = 4 The average silhouette_score is : 0.051275897711686065
+For n_clusters = 8 The average silhouette_score is : 0.03993288477131976
+For n_clusters = 16 The average silhouette_score is : 0.04528800434238909
+For n_clusters = 27 The average silhouette_score is : -0.015749238130522546
+For n_clusters = 30 The average silhouette_score is : -0.0020868123984285982
+
+DCT block_szie=64, features_per_block=5x5
+Raw features, dim= (1600,)
+For n_clusters = 2 The average silhouette_score is : 0.16088172976863663
+For n_clusters = 4 The average silhouette_score is : 0.048203799141629006
+For n_clusters = 8 The average silhouette_score is : 0.037602233396377485
+For n_clusters = 16 The average silhouette_score is : 0.007022018702320391
+For n_clusters = 27 The average silhouette_score is : -0.04625037120079449
+For n_clusters = 30 The average silhouette_score is : -0.03340520632674131
+
+DRT 0-360, 3 degree step, rescale to 64x64
+Raw features, dim= (7680,)
+For n_clusters = 2 The average silhouette_score is : 0.38607380505004235
+For n_clusters = 4 The average silhouette_score is : 0.24229974434891546
+For n_clusters = 8 The average silhouette_score is : 0.1282029818465095
+For n_clusters = 16 The average silhouette_score is : 0.06556480093753772
+For n_clusters = 27 The average silhouette_score is : 0.06279277540850328
+For n_clusters = 30 The average silhouette_score is : 0.050114980790230475
+
+DRT 0-360, 10 degree step, rescale to 128x128
+Raw features, dim= (4608,)
+For n_clusters = 2 The average silhouette_score is : 0.3836259703541514
+For n_clusters = 4 The average silhouette_score is : 0.2415185001972276
+For n_clusters = 8 The average silhouette_score is : 0.12541797823143955
+For n_clusters = 16 The average silhouette_score is : 0.07259728455551248
+For n_clusters = 27 The average silhouette_score is : 0.05839611876298926
+For n_clusters = 30 The average silhouette_score is : 0.04716915227566901
+
+DRT 0-360, 6 degree step, rescale to 512x512 -> PCA n_components=500
+Raw features, dim= (500,)
+For n_clusters = 2 The average silhouette_score is : 0.1521393488859818
+For n_clusters = 4 The average silhouette_score is : 0.017816904456657186
+For n_clusters = 8 The average silhouette_score is : 0.033402411224421884
+For n_clusters = 16 The average silhouette_score is : 0.04692667121685931
+For n_clusters = 27 The average silhouette_score is : -0.12230605259599847
+For n_clusters = 30 The average silhouette_score is : 0.0018576240169298486
+
+HoG orientations=10, pixels_per_cell=(16, 16), cells_per_block=(1, 1)
+Raw features, dim= (10240,)
+For n_clusters = 2 The average silhouette_score is : 0.14954961995563856
+For n_clusters = 4 The average silhouette_score is : 0.0693639558255608
+For n_clusters = 8 The average silhouette_score is : 0.055910217577545065
+For n_clusters = 16 The average silhouette_score is : 0.0234347542257725
+For n_clusters = 27 The average silhouette_score is : -0.028642265161354357
+For n_clusters = 30 The average silhouette_score is : -0.051287893782485716
+
+HoG orientations=10, pixels_per_cell=(64, 64), cells_per_block=(1, 1)
+Raw features, dim= (640,)
+For n_clusters = 2 The average silhouette_score is : 0.2991721831396404
+For n_clusters = 4 The average silhouette_score is : 0.22158429819765768
+For n_clusters = 8 The average silhouette_score is : 0.09845557520422896
+For n_clusters = 16 The average silhouette_score is : 0.09476032981932886
+For n_clusters = 27 The average silhouette_score is : 0.0573310598576549
+For n_clusters = 30 The average silhouette_score is : 0.0025295614406889064
+
+ORB: issues are different amount of keypoints, patch near edge of image may not be full size
+(features per image not always the same!!!)
+
+LBP radius=2, neighbors=16
+Raw features, dim= (18,)
+For n_clusters = 2 The average silhouette_score is : 0.58976394
+For n_clusters = 4 The average silhouette_score is : 0.5153209
+For n_clusters = 8 The average silhouette_score is : 0.45648968
+For n_clusters = 16 The average silhouette_score is : 0.3646959
+For n_clusters = 27 The average silhouette_score is : 0.33787784
+For n_clusters = 30 The average silhouette_score is : 0.32367125
+
+LBP radius=4, neighbors=14
+Raw features, dim= (16,)
+For n_clusters = 2 The average silhouette_score is : 0.58983225
+For n_clusters = 4 The average silhouette_score is : 0.51834804
+For n_clusters = 8 The average silhouette_score is : 0.46649486
+For n_clusters = 16 The average silhouette_score is : 0.36886695
+For n_clusters = 27 The average silhouette_score is : 0.32826927
+For n_clusters = 30 The average silhouette_score is : 0.32360432
+
+LBP radius=3, neighbors=30
+Raw features, dim= (32,)
+For n_clusters = 2 The average silhouette_score is : 0.5924986
+For n_clusters = 4 The average silhouette_score is : 0.5314139
+For n_clusters = 8 The average silhouette_score is : 0.48199102
+For n_clusters = 16 The average silhouette_score is : 0.39023829
+For n_clusters = 27 The average silhouette_score is : 0.3406413
+For n_clusters = 30 The average silhouette_score is : 0.3355222
+
+LBP radius=5, neighbors=40
+Raw features, dim= (42,)
+For n_clusters = 2 The average silhouette_score is : 0.5962391
+For n_clusters = 4 The average silhouette_score is : 0.53855604
+For n_clusters = 8 The average silhouette_score is : 0.50507367
+For n_clusters = 16 The average silhouette_score is : 0.43264088
+For n_clusters = 27 The average silhouette_score is : 0.35651228
+For n_clusters = 30 The average silhouette_score is : 0.34555456
+
+HOG -> LBP, all defaults
+Raw features, dim= (26,)
+For n_clusters = 2 The average silhouette_score is : 0.64317644
+For n_clusters = 4 The average silhouette_score is : 0.5769839
+For n_clusters = 8 The average silhouette_score is : 0.5073909
+For n_clusters = 16 The average silhouette_score is : 0.4000697
+For n_clusters = 27 The average silhouette_score is : 0.32828596
+For n_clusters = 30 The average silhouette_score is : 0.3262848
+
