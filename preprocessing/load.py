@@ -36,6 +36,7 @@ def load_dataset(dataset, split):
         return tf.cast(full_image, tf.float32)
 
     def _encode_label(labels):
+        labels = tf.cast(labels, tf.uint8)
         expanded_encoding = tf.one_hot(indices=labels, depth=len(Organelle))
         label_encoding = tf.reduce_sum(expanded_encoding, axis=0)
         return label_encoding
@@ -47,12 +48,16 @@ def load_dataset(dataset, split):
     assert isinstance(id_dataset, tf.data.Dataset)
     image_dataset = id_dataset.map(_load_image)
 
-    label_dataset = tf.data.Dataset.from_generator(lambda: labels, tf.int32, output_shapes=[None])
+    def label_generator():
+        for sample_id in partitions[split]:
+            yield dataset.sample_labels[sample_id]
+
+    # label_shape = (len(Organelle),)
+    label_dataset = tf.data.Dataset.from_generator(label_generator,
+                                                   output_types=tf.float32,
+                                                   output_shapes=tf.TensorShape(len(Organelle)))
     assert isinstance(label_dataset, tf.data.Dataset)
     label_dataset = label_dataset.map(_encode_label)
-
-    sample_shape = dataset.shape[1:]
-    label_shape = (len(Organelle),)
 
     ds = tf.data.Dataset.zip((image_dataset, label_dataset))
     return ds
