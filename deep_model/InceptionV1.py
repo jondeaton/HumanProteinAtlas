@@ -54,12 +54,17 @@ def MaxPooling2D(x):
 class InceptionV1(object):
     def __init__(self, params):
         self.params = params
+
         self.variables_to_save = list()
+        self.restore_tensors = list()
 
     def __call__(self, input, labels, is_training):
+        assert isinstance(input, tf.Tensor)
+        assert isinstance(labels, tf.Tensor)
+        assert isinstance(is_training, tf.Tensor)
 
         def BatchNormalization(input):
-            batchnorm = tf.keras.layers.BatchNormalization(axis=-1)
+            batchnorm = tf.keras.layers.BatchNormalization(axis=1)
             assert isinstance(batchnorm, tf.keras.layers.BatchNormalization)
             bn = batchnorm(input, training=is_training)
 
@@ -102,7 +107,7 @@ class InceptionV1(object):
 
         l = tf.layers.flatten(l)
         l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
-        l = tf.layers.dense(l, len(Organelle), activation='relu')
+        l = tf.layers.dense(l, len(Organelle), activation=tf.nn.relu)
 
         l = BatchNormalization(l)
         l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)

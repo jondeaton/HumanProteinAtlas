@@ -35,7 +35,7 @@ class ModelTrainer(object):
         self.logging_metrics = dict()
         self.tensorboard_metrics = dict()
 
-        tf.random.set_random_seed(params.seed)
+        tf.set_random_seed(params.seed)
 
         self.epoch = 0
 

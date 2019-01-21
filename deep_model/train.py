@@ -8,6 +8,7 @@ Author: Jon Deaton (jdeaton@stanford.edu)
 import os, sys
 import argparse, logging
 
+import numpy as np
 import tensorflow as tf
 
 from deep_model.config import Configuration
@@ -18,8 +19,10 @@ from deep_model.InceptionV1 import InceptionV1
 
 from HumanProteinAtlas import Dataset
 from partitions import Split
-from preprocessing import load_dataset, augment_dataset, preprocess_dataset
-import numpy as np
+from preprocessing.load import load_dataset
+from preprocessing.augmentation import augment_dataset
+from preprocessing.preprocess import preprocess_dataset
+
 
 def create_datasets(human_protein_atlas, bias_rare=False, rare_classes=None):
     assert isinstance(human_protein_atlas, Dataset)
@@ -77,7 +80,7 @@ def run_train(args, config, params):
 
     model = InceptionV1(params)
     trainer = ModelTrainer(model, config, params, logger, restore_model_path=args.restore)
-    trainer.train(train_dataset, test_dataset, trainable_scope=params.scope)
+    trainer.train(train_dataset, test_dataset, trainable_scopes=params.scopes)
 
     logger.debug("Exiting.")
 
