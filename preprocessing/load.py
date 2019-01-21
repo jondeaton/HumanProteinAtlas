@@ -5,6 +5,7 @@ Date: 10/21/18
 Author: Jon Deaton (jdeaton@stanford.edu)
 """
 
+import numpy as np
 import tensorflow as tf
 
 from HumanProteinAtlas import Dataset, Sample, Organelle
@@ -50,7 +51,11 @@ def load_dataset(dataset, split):
 
     def label_generator():
         for sample_id in partitions[split]:
-            yield dataset.sample_labels[sample_id]
+            labels = dataset.sample_labels[sample_id]
+            a = np.array(labels)
+            b = np.zeros((a.size, len(Organelle)))
+            b[np.arange(a.size), a] = 1
+            yield np.sum(b, axis=0)
 
     # label_shape = (len(Organelle),)
     label_dataset = tf.data.Dataset.from_generator(label_generator,
