@@ -89,28 +89,28 @@ class InceptionV1(object):
         # l = batch_conv_relu(l, 8)
         # l = batch_conv_relu(l, 16)
 
-        l = BatchNormalization(l)
-        l = MaxPooling2D(l)
+        # l = BatchNormalization(l)
+        # l = MaxPooling2D(l)
 
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        # l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
 
         # l = inception_module(l, 16, [(3, 3), (5, 5), (7, 7), (1, 1)])
-        l = BatchNormalization(l)
+        # l = BatchNormalization(l)
 
-        l = batch_pool_drop_conv_relu(l, 32)
+        # l = batch_pool_drop_conv_relu(l, 32)
         # l = batch_pool_drop_conv_relu(l, 64)
         # l = batch_pool_drop_conv_relu(l, 128)
 
-        l = BatchNormalization(l)
-        l = MaxPooling2D(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        # l = BatchNormalization(l)
+        # l = MaxPooling2D(l)
+        # l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
 
         l = tf.layers.flatten(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
-        l = tf.layers.dense(l, len(Organelle), activation=tf.nn.relu)
+        # l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        # l = tf.layers.dense(l, len(Organelle), activation=tf.nn.relu)
 
-        l = BatchNormalization(l)
-        l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
+        # l = BatchNormalization(l)
+        # l = tf.layers.dropout(l, rate=self.params.dropout_rate, training=is_training)
         logits = tf.layers.dense(l, len(Organelle), activation=None)
         y_prob = tf.sigmoid(logits)
 
