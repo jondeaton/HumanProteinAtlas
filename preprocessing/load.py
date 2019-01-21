@@ -10,7 +10,7 @@ import tensorflow as tf
 from HumanProteinAtlas import Dataset, Sample, Organelle
 from partitions import Split, partitions
 
-from HumanProteinAtlas.sample import Color, default_color_ordering
+from HumanProteinAtlas.sample import Color, default_color_ordering, color_names
 
 
 def load_dataset(dataset, split):
@@ -22,7 +22,7 @@ def load_dataset(dataset, split):
 
         color_filenames = [None] * len(Color)
         for color, idx in default_color_ordering.items():
-            color_filenames[idx] = tf.string_join([base, "_{color}.png".format(color=color)])
+            color_filenames[idx] = tf.string_join([base, "_{color}.png".format(color=color_names[color])])
 
         color_images = list()
         for filename in color_filenames:
