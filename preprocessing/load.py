@@ -14,7 +14,7 @@ from partitions import Split, partitions
 from HumanProteinAtlas.sample import Color, default_color_ordering, color_names
 
 
-def load_dataset(dataset, split):
+def _load_dataset(dataset, split):
     assert isinstance(dataset, Dataset)
     assert isinstance(split, Split)
 
@@ -68,7 +68,7 @@ def load_dataset(dataset, split):
     return ds
 
 
-def _load_dataset(dataset, split, classes=None):
+def load_dataset(dataset, split, classes=None):
     """ Loads a dataset into a TensorFlow Dataset object
 
     :param dataset: HumanProteinAtlas dataset
